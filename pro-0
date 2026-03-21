@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>ASCII 渲染器 - WebGL</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a0a;
+  color: #ccc;
+  font-family: -apple-system, 'Helvetica Neue', sans-serif;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 左侧控制面板 */
+.panel {
+  width: 240px;
+  min-width: 240px;
+  background: #111;
+  border-right: 1px solid #222;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 16px 14px;
+  gap: 6px;
+}
+.panel h2 {
+  font-size: 14px;
+  color: #eee;
+  margin: 12px 0 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #333;
+}
+.panel h2:first-child { margin-top: 0; }
+.panel .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.panel .row label {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+  min-width: 70px;
+}
+.panel .row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+}
+.panel .row .val {
+  font-size: 11px;
+  color: #aaa;
+  min-width: 24px;
+  text-align: right;
+}
+.btn {
+  padding: 7px 0;
+  border: 1px solid #444;
+  background: #1a1a1a;
+  color: #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+  text-align: center;
+  width: 100%;
+}
+.btn:hover { background: #2a2a2a; }
+.btn-group {
+  display: flex;
+  gap: 6px;
+}
+.btn-group .btn { flex: 1; }
+
+/* 自定义字符输入 */
+.char-input {
+  width: 100%;
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #eee;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  letter-spacing: 2px;
+}
+.char-input:focus {
+  outline: none;
+  border-color: #666;
+}
+.char-hint {
+  font-size: 10px;
+  color: #555;
+  margin-top: 2px;
+}
+
+/* 右侧画布区 */
+.canvas-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #080808;
+  position: relative;
+}
+canvas#glCanvas {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.hint {
+  color: #555;
+  font-size: 14px;
+  position: absolute;
+}
+video { display: none; }
+</style>
+</head>
+<body>
+
+<!-- 左侧面板 -->
+<div class="panel">
+  <h2>导入</h2>
+  <div class="btn-group">
+    <button class="btn" id="btnImage">图片</button>
+    <button class="btn" id="btnVideo">视频</button>
+  </div>
+  <button class="btn" id="btnSave" style="display:none;">保存图片</button>
+  <button class="btn" id="btnRecord" style="display:none;">录制视频</button>
+
+  <h2>字符设置</h2>
+  <input type="text" class="char-input" id="charInput" value=" .:-=+*t2#@" spellcheck="false">
+  <div class="char-hint">从暗到亮排列，第一个为空格（不显示）</div>
+
+  <div class="row">
+    <label>字符大小</label>
+    <input type="range" id="cellSize" min="4" max="24" value="10">
+    <span class="val" id="cellSizeVal">10</span>
+  </div>
+  <div class="row">
+    <label>字符间距</label>
+    <input type="range" id="charSpacing" min="0" max="20" value="4">
+    <span class="val" id="charSpacingVal">4</span>
+  </div>
+  <div class="row">
+    <label>字符密度</label>
+    <input type="range" id="density" min="10" max="100" value="70">
+    <span class="val" id="densityVal">70</span>
+  </div>
+  <div class="row">
+    <label>最大不透明</label>
+    <input type="range" id="charOpacity" min="10" max="100" value="80">
+    <span class="val" id="charOpacityVal">80</span>
+  </div>
+
+  <h2>亮度与渐隐</h2>
+  <div class="row">
+    <label>亮度阈值</label>
+    <input type="range" id="threshold" min="0" max="500" value="150" step="1">
+    <span class="val" id="thresholdVal">30</span>
+  </div>
+  <div class="row">
+    <label>渐隐范围</label>
+    <input type="range" id="fadeRange" min="1" max="200" value="80" step="1">
+    <span class="val" id="fadeRangeVal">40</span>
+  </div>
+  <div class="row">
+    <label>字符对比度</label>
+    <input type="range" id="charGamma" min="10" max="300" value="100">
+    <span class="val" id="charGammaVal">100</span>
+  </div>
+  <div class="row">
+    <label>边缘增强</label>
+    <input type="range" id="edgeBoost" min="0" max="100" value="30">
+    <span class="val" id="edgeBoostVal">30</span>
+  </div>
+
+  <h2>单色模式</h2>
+  <div class="btn-group">
+    <button class="btn" id="btnMono">开启单色</button>
+  </div>
+  <div id="monoOptions" style="display:none;">
+    <div class="row" style="margin-top:6px;">
+      <label>背景色</label>
+      <input type="color" id="monoBgColor" value="#1a2744" style="width:32px;height:22px;border:none;cursor:pointer;">
+    </div>
+    <div class="row">
+      <label>字符色</label>
+      <input type="color" id="monoCharColor" value="#ffffff" style="width:32px;height:22px;border:none;cursor:pointer;">
+    </div>
+  </div>
+
+  <h2>背景</h2>
+  <div class="row">
+    <label>原图亮度</label>
+    <input type="range" id="bgDarken" min="0" max="100" value="80">
+    <span class="val" id="bgDarkenVal">80</span>
+  </div>
+  <div class="row">
+    <label>模糊</label>
+    <input type="range" id="blur" min="0" max="30" value="8">
+    <span class="val" id="blurVal">8</span>
+  </div>
+
+  <h2>渐变效果</h2>
+  <div class="row">
+    <label>波纹强度</label>
+    <input type="range" id="waveIntensity" min="0" max="100" value="40">
+    <span class="val" id="waveIntensityVal">40</span>
+  </div>
+  <div class="row">
+    <label>波纹缩放</label>
+    <input type="range" id="waveScale" min="1" max="100" value="20">
+    <span class="val" id="waveScaleVal">20</span>
+  </div>
+  <div class="row">
+    <label>颜色渐变</label>
+    <input type="range" id="colorGrad" min="0" max="100" value="50">
+    <span class="val" id="colorGradVal">50</span>
+  </div>
+</div>
+
+<!-- 右侧画布 -->
+<div class="canvas-area">
+  <canvas id="glCanvas"></canvas>
+  <p class="hint" id="hint">导入图片或视频开始</p>
+</div>
+
+<input type="file" id="fileImage" accept="image/*" hidden>
+<input type="file" id="fileVideo" accept="video/*" hidden>
+<video id="video" loop muted playsinline></video>
+<canvas id="charCanvas" style="display:none;"></canvas>
+
+<script>
+// ============ 字符图集 ============
+let asciiChars = ' .:-=+*t2#@';
+let charCount = asciiChars.length;
+
+function createCharAtlas(fontSize) {
+  const c = document.getElementById('charCanvas');
+  const ctx = c.getContext('2d');
+  const font = `${fontSize}px Menlo, Monaco, "Courier New", monospace`;
+  ctx.font = font;
+  const charW = Math.ceil(ctx.measureText('W').width);
+  const charH = fontSize;
+  c.width = charW * charCount;
+  c.height = charH;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.font = font;
+  ctx.fillStyle = '#fff';
+  ctx.textBaseline = 'top';
+  for (let i = 0; i < charCount; i++) {
+    ctx.fillText(asciiChars[i], i * charW, 0);
+  }
+  return { canvas: c, charW, charH };
+}
+
+// ============ WebGL ============
+const canvas = document.getElementById('glCanvas');
+const gl = canvas.getContext('webgl', { preserveDrawingBuffer: true });
+if (!gl) alert('WebGL 不可用');
+
+const VS = `
+attribute vec2 a_pos;
+varying vec2 v_uv;
+void main() {
+  v_uv = a_pos * 0.5 + 0.5;
+  v_uv.y = 1.0 - v_uv.y;
+  gl_Position = vec4(a_pos, 0.0, 1.0);
+}`;
+
+const FS = `
+precision highp float;
+varying vec2 v_uv;
+
+uniform sampler2D u_image;
+uniform sampler2D u_charAtlas;
+uniform vec2 u_resolution;
+uniform vec2 u_cellSize;
+uniform float u_charCount;
+uniform float u_bgDarken;
+uniform float u_threshold;
+uniform float u_blur;
+uniform float u_waveIntensity;
+uniform float u_waveScale;
+uniform float u_density;
+uniform float u_edgeBoost;
+uniform float u_colorGrad;
+uniform float u_charOpacity;
+uniform float u_fadeRange;
+uniform float u_charGamma;
+uniform float u_monoMode;       // 0=正常, 1=单色模式
+uniform vec3 u_monoBg;           // 单色背景色
+uniform vec3 u_monoChar;         // 单色字符色
+uniform float u_time;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p); vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = hash(i), b = hash(i + vec2(1,0)), c = hash(i + vec2(0,1)), d = hash(i + vec2(1,1));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+float fbm(vec2 p) {
+  float v = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++) { v += a * noise(p); p *= 2.0; a *= 0.5; }
+  return v;
+}
+vec3 blurSample(vec2 uv, float radius) {
+  vec3 sum = vec3(0.0); float count = 0.0;
+  vec2 texel = 1.0 / u_resolution;
+  for (float x = -4.0; x <= 4.0; x += 1.0)
+    for (float y = -4.0; y <= 4.0; y += 1.0) {
+      sum += texture2D(u_image, uv + vec2(x,y) * texel * radius).rgb;
+      count += 1.0;
+    }
+  return sum / count;
+}
+float edgeDetect(vec2 uv) {
+  vec2 t = 1.0 / u_resolution;
+  float tl = dot(texture2D(u_image, uv+vec2(-1, 1)*t).rgb, vec3(.299,.587,.114));
+  float tm = dot(texture2D(u_image, uv+vec2( 0, 1)*t).rgb, vec3(.299,.587,.114));
+  float tr = dot(texture2D(u_image, uv+vec2( 1, 1)*t).rgb, vec3(.299,.587,.114));
+  float ml = dot(texture2D(u_image, uv+vec2(-1, 0)*t).rgb, vec3(.299,.587,.114));
+  float mr = dot(texture2D(u_image, uv+vec2( 1, 0)*t).rgb, vec3(.299,.587,.114));
+  float bl = dot(texture2D(u_image, uv+vec2(-1,-1)*t).rgb, vec3(.299,.587,.114));
+  float bm = dot(texture2D(u_image, uv+vec2( 0,-1)*t).rgb, vec3(.299,.587,.114));
+  float br = dot(texture2D(u_image, uv+vec2( 1,-1)*t).rgb, vec3(.299,.587,.114));
+  float gx = -tl - 2.0*ml - bl + tr + 2.0*mr + br;
+  float gy = -tl - 2.0*tm - tr + bl + 2.0*bm + br;
+  return sqrt(gx*gx + gy*gy);
+}
+
+void main() {
+  vec2 cell = floor(gl_FragCoord.xy / u_cellSize);
+  vec2 cellUV = (cell + 0.5) * u_cellSize / u_resolution;
+  cellUV.y = 1.0 - cellUV.y;
+
+  vec3 cellColor = texture2D(u_image, cellUV).rgb;
+  float brightness = dot(cellColor, vec3(0.299, 0.587, 0.114));
+
+  float edge = edgeDetect(cellUV) * u_edgeBoost * 3.0;
+  vec2 wc = cell / u_waveScale;
+  float wave = fbm(wc) * 2.0 - 1.0;
+  float waveOff = wave * u_waveIntensity;
+
+  float eBri = clamp(brightness + waveOff * 0.3 + edge, 0.0, 1.0);
+
+  // ====== 单色模式 ======
+  if (u_monoMode > 0.5) {
+    vec3 bg = u_monoBg;
+    // 所有单元格都显示字符
+    float cVal = pow(clamp(eBri + waveOff * 0.2, 0.0, 1.0), u_charGamma);
+    float cIdx = floor(cVal * (u_charCount - 1.0) + 0.5);
+    vec2 lp = fract(gl_FragCoord.xy / u_cellSize);
+    lp.y = 1.0 - lp.y;
+    float cAlpha = texture2D(u_charAtlas, vec2((cIdx + lp.x) / u_charCount, lp.y)).r;
+    // 字符透明度随亮度变化：亮处字符更明显
+    float intensity = cAlpha * (0.3 + eBri * 0.7) * u_charOpacity;
+    vec3 result = mix(bg, u_monoChar, clamp(intensity, 0.0, 1.0));
+    gl_FragColor = vec4(result, 1.0);
+    return;
+  }
+
+  // ====== 正常模式 ======
+  vec3 orig = texture2D(u_image, v_uv).rgb;
+  vec3 blurred = blurSample(v_uv, u_blur);
+  vec3 bg = mix(orig, blurred, min(u_blur / 10.0, 1.0)) * u_bgDarken;
+
+  bool showChar = hash(cell) < u_density;
+  float fade = smoothstep(u_threshold, u_threshold + u_fadeRange, eBri);
+  if (fade < 0.01 || !showChar) { gl_FragColor = vec4(bg, 1.0); return; }
+
+  float cVal = clamp(eBri + waveOff * 0.2, 0.0, 1.0);
+  cVal = pow(cVal, u_charGamma);
+  float cIdx = floor(cVal * (u_charCount - 1.0) + 0.5);
+  vec2 lp = fract(gl_FragCoord.xy / u_cellSize);
+  lp.y = 1.0 - lp.y;
+  float cAlpha = texture2D(u_charAtlas, vec2((cIdx + lp.x) / u_charCount, lp.y)).r;
+
+  vec3 cc = mix(vec3(1.0), cellColor / max(dot(cellColor, vec3(.299,.587,.114)), 0.01) * 0.7, u_colorGrad * 0.5);
+  cc = clamp(cc, 0.0, 1.0);
+  float hs = wave * u_colorGrad * 0.15;
+  float cosH = cos(hs * 3.14159), sinH = sin(hs * 3.14159);
+  vec3 sh = vec3(
+    cc.r*(.667+cosH*.333)+cc.g*(.333-cosH*.333-sinH*.577)+cc.b*(.333-cosH*.333+sinH*.577),
+    cc.r*(.333-cosH*.333+sinH*.577)+cc.g*(.667+cosH*.333)+cc.b*(.333-cosH*.333-sinH*.577),
+    cc.r*(.333-cosH*.333-sinH*.577)+cc.g*(.333-cosH*.333+sinH*.577)+cc.b*(.667+cosH*.333)
+  );
+  vec3 fcc = clamp(sh, 0.0, 1.0);
+
+  float fA = clamp(cAlpha * fade * u_charOpacity, 0.0, 1.0);
+  vec3 result = min(bg + fcc * fA * 0.8, vec3(1.0));
+  gl_FragColor = vec4(result, 1.0);
+}`;
+
+function compileShader(src, type) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+const prog = gl.createProgram();
+gl.attachShader(prog, compileShader(VS, gl.VERTEX_SHADER));
+gl.attachShader(prog, compileShader(FS, gl.FRAGMENT_SHADER));
+gl.linkProgram(prog); gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'a_pos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const loc = {};
+['u_image','u_charAtlas','u_resolution','u_cellSize','u_charCount',
+ 'u_bgDarken','u_threshold','u_blur','u_waveIntensity','u_waveScale',
+ 'u_density','u_edgeBoost','u_colorGrad','u_charOpacity','u_fadeRange','u_charGamma',
+ 'u_monoMode','u_monoBg','u_monoChar','u_time'
+].forEach(n => { loc[n] = gl.getUniformLocation(prog, n); });
+
+function createTexture(unit) {
+  const tex = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0 + unit);
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  return tex;
+}
+const texImage = createTexture(0);
+const texAtlas = createTexture(1);
+gl.uniform1i(loc.u_image, 0);
+gl.uniform1i(loc.u_charAtlas, 1);
+
+// ============ 状态 ============
+let source = null, animId = null, currentImgSrc = null;
+const params = {
+  cellSize: 10, charSpacing: 4, bgDarken: 0.8, threshold: 0.30, blur: 8,
+  waveIntensity: 0.4, waveScale: 20, density: 0.7,
+  edgeBoost: 0.3, colorGrad: 0.5, charOpacity: 0.8, fadeRange: 0.4, charGamma: 1.0,
+  monoMode: 0, monoBg: [0.102, 0.153, 0.267], monoChar: [1, 1, 1],
+};
+
+let charW, charH;
+function uploadCharAtlas() {
+  const atlas = createCharAtlas(Math.max(8, params.cellSize));
+  charW = atlas.charW; charH = atlas.charH;
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, texAtlas);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas.canvas);
+}
+uploadCharAtlas();
+
+let startTime = performance.now();
+function render() {
+  const cellW = params.cellSize + params.charSpacing;
+  const cellH = cellW + Math.ceil(params.cellSize * 0.4); // 垂直额外加高
+  gl.viewport(0, 0, canvas.width, canvas.height);
+  gl.uniform2f(loc.u_resolution, canvas.width, canvas.height);
+  gl.uniform2f(loc.u_cellSize, cellW, cellH);
+  gl.uniform1f(loc.u_charCount, charCount);
+  gl.uniform1f(loc.u_bgDarken, params.bgDarken);
+  gl.uniform1f(loc.u_threshold, params.threshold);
+  gl.uniform1f(loc.u_blur, params.blur);
+  gl.uniform1f(loc.u_waveIntensity, params.waveIntensity);
+  gl.uniform1f(loc.u_waveScale, params.waveScale);
+  gl.uniform1f(loc.u_density, params.density);
+  gl.uniform1f(loc.u_edgeBoost, params.edgeBoost);
+  gl.uniform1f(loc.u_colorGrad, params.colorGrad);
+  gl.uniform1f(loc.u_charOpacity, params.charOpacity);
+  gl.uniform1f(loc.u_fadeRange, params.fadeRange);
+  gl.uniform1f(loc.u_charGamma, params.charGamma);
+  gl.uniform1f(loc.u_monoMode, params.monoMode);
+  gl.uniform3f(loc.u_monoBg, params.monoBg[0], params.monoBg[1], params.monoBg[2]);
+  gl.uniform3f(loc.u_monoChar, params.monoChar[0], params.monoChar[1], params.monoChar[2]);
+  gl.uniform1f(loc.u_time, (performance.now() - startTime) / 1000);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+}
+
+function uploadAndRender(src) {
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, texImage);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+  render();
+}
+
+// ============ 导入 ============
+const fileImage = document.getElementById('fileImage');
+const fileVideo = document.getElementById('fileVideo');
+const video = document.getElementById('video');
+
+document.getElementById('btnImage').onclick = () => fileImage.click();
+document.getElementById('btnVideo').onclick = () => fileVideo.click();
+
+fileImage.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  stopVideo();
+  const img = new Image();
+  img.onload = () => {
+    source = 'image'; currentImgSrc = img;
+    canvas.width = img.width; canvas.height = img.height;
+    document.getElementById('hint').style.display = 'none';
+    document.getElementById('btnSave').style.display = '';
+    document.getElementById('btnRecord').style.display = 'none';
+    uploadCharAtlas(); uploadAndRender(img);
+  };
+  img.src = URL.createObjectURL(file);
+});
+
+function stopVideo() {
+  if (animId) { cancelAnimationFrame(animId); animId = null; }
+  video.pause(); video.src = '';
+}
+
+fileVideo.addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  stopVideo(); source = 'video';
+  video.src = URL.createObjectURL(file);
+  video.onloadedmetadata = () => {
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    document.getElementById('hint').style.display = 'none';
+    document.getElementById('btnSave').style.display = '';
+    document.getElementById('btnRecord').style.display = '';
+    uploadCharAtlas(); video.play(); videoLoop();
+  };
+});
+
+function videoLoop() {
+  if (source !== 'video') return;
+  if (!video.paused && !video.ended) uploadAndRender(video);
+  animId = requestAnimationFrame(videoLoop);
+}
+
+// ============ 自定义字符 ============
+const charInput = document.getElementById('charInput');
+charInput.addEventListener('input', () => {
+  const val = charInput.value;
+  if (val.length < 2) return; // 至少2个字符
+  asciiChars = val;
+  charCount = asciiChars.length;
+  uploadCharAtlas();
+  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+  else if (source === 'image') render();
+});
+
+// ============ 控制面板 ============
+function bindSlider(id, valId, setter) {
+  const el = document.getElementById(id);
+  const valEl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    valEl.textContent = el.value;
+    setter(Number(el.value));
+    if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+    else if (source === 'image') render();
+  });
+}
+
+bindSlider('cellSize', 'cellSizeVal', v => { params.cellSize = v; uploadCharAtlas(); });
+bindSlider('charSpacing', 'charSpacingVal', v => { params.charSpacing = v; });
+bindSlider('bgDarken', 'bgDarkenVal', v => { params.bgDarken = v / 100; });
+bindSlider('threshold', 'thresholdVal', v => { params.threshold = v / 500; });
+bindSlider('blur', 'blurVal', v => { params.blur = v; });
+bindSlider('waveIntensity', 'waveIntensityVal', v => { params.waveIntensity = v / 100; });
+bindSlider('waveScale', 'waveScaleVal', v => { params.waveScale = v; });
+bindSlider('density', 'densityVal', v => { params.density = v / 100; });
+bindSlider('charGamma', 'charGammaVal', v => { params.charGamma = v / 100; });
+bindSlider('edgeBoost', 'edgeBoostVal', v => { params.edgeBoost = v / 100; });
+bindSlider('colorGrad', 'colorGradVal', v => { params.colorGrad = v / 100; });
+bindSlider('charOpacity', 'charOpacityVal', v => { params.charOpacity = v / 100; });
+bindSlider('fadeRange', 'fadeRangeVal', v => { params.fadeRange = v / 200; });
+
+// ============ 单色模式 ============
+const btnMono = document.getElementById('btnMono');
+const monoOptions = document.getElementById('monoOptions');
+
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1,3), 16) / 255;
+  const g = parseInt(hex.slice(3,5), 16) / 255;
+  const b = parseInt(hex.slice(5,7), 16) / 255;
+  return [r, g, b];
+}
+
+btnMono.onclick = () => {
+  params.monoMode = params.monoMode ? 0 : 1;
+  btnMono.textContent = params.monoMode ? '关闭单色' : '开启单色';
+  btnMono.style.borderColor = params.monoMode ? '#6a6' : '#444';
+  monoOptions.style.display = params.monoMode ? '' : 'none';
+  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+  else if (source === 'image') render();
+};
+
+document.getElementById('monoBgColor').addEventListener('input', e => {
+  params.monoBg = hexToRgb(e.target.value);
+  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+  else if (source === 'image') render();
+});
+document.getElementById('monoCharColor').addEventListener('input', e => {
+  params.monoChar = hexToRgb(e.target.value);
+  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+  else if (source === 'image') render();
+});
+
+// ============ 保存图片（原始分辨率 PNG）============
+document.getElementById('btnSave').onclick = () => {
+  if (source === 'video') uploadAndRender(video);
+  canvas.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ascii_render.png';
+    a.click();
+  }, 'image/png');
+};
+
+// ============ 录制视频 ============
+let mediaRecorder = null;
+let recordedChunks = [];
+const btnRecord = document.getElementById('btnRecord');
+
+btnRecord.onclick = () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    // 停止录制
+    mediaRecorder.stop();
+    btnRecord.textContent = '录制视频';
+    btnRecord.style.borderColor = '#444';
+    return;
+  }
+  // 开始录制
+  const stream = canvas.captureStream(30); // 30fps
+  const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+    ? 'video/webm;codecs=vp9'
+    : 'video/webm';
+  mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
+  recordedChunks = [];
+  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(recordedChunks, { type: mimeType });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ascii_render.webm';
+    a.click();
+  };
+  mediaRecorder.start();
+  btnRecord.textContent = '停止录制';
+  btnRecord.style.borderColor = '#c44';
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "3D 模型渲染器",
+  "id": "3d-model-renderer-plugin",
+  "api": "1.0.0",
+  "main": "code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": ["figma"],
+  "ui": "ui.html",
+  "networkAccess": {
+    "allowedDomains": [
+      "unpkg.com",
+      "cdn.jsdelivr.net",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ]
+  }
+}
