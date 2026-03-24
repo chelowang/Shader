@@ -8,6 +8,6 @@
   "editorType": ["figma"],
   "ui": "ui.html",
   "networkAccess": {
-    "allowedDomains": ["fonts.googleapis.com", "fonts.gstatic.com"]
+    "allowedDomains": ["fonts.googleapis.com", "fonts.gstatic.com", "unpkg.com"]
   }
 }
