@@ -732,6 +732,15 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
         <input type="range" id="recordDuration" min="1" max="30" value="5">
         <span class="val" id="recordDurationVal">5</span>
       </div>
+      <div class="row" style="margin-top:4px;">
+        <label data-i18n="resolution">Resolution</label>
+        <div class="btn-group" id="exportScaleGroup">
+          <button class="btn active" data-scale="1">1×</button>
+          <button class="btn" data-scale="2">2×</button>
+          <button class="btn" data-scale="3">3×</button>
+          <button class="btn" data-scale="4">4×</button>
+        </div>
+      </div>
       <div class="divider"></div>
     </div>
 
@@ -818,6 +827,95 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
         <label data-i18n="random">Random</label>
         <input type="range" id="flickerRandom" min="0" max="100" value="50">
         <span class="val" id="flickerRandomVal">50</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 后处理 -->
+    <div class="panel-title" data-i18n="postProcessing">Post-Processing</div>
+
+    <div class="row">
+      <label data-i18n="vignette">Vignette</label>
+      <input type="range" id="pp_vignette" min="0" max="100" value="0">
+      <span class="val" id="pp_vignetteVal">0</span>
+    </div>
+    <div class="row">
+      <label data-i18n="scanLines">Scan Lines</label>
+      <input type="range" id="pp_scanlines" min="0" max="100" value="0">
+      <span class="val" id="pp_scanlinesVal">0</span>
+    </div>
+    <div class="row">
+      <label data-i18n="crtCurve">CRT Curve</label>
+      <input type="range" id="pp_crt" min="0" max="100" value="0">
+      <span class="val" id="pp_crtVal">0</span>
+    </div>
+    <div class="row">
+      <label data-i18n="chromatic">Chromatic</label>
+      <input type="range" id="pp_chromatic" min="0" max="100" value="0">
+      <span class="val" id="pp_chromaticVal">0</span>
+    </div>
+    <div class="row">
+      <label data-i18n="bloom">Bloom</label>
+      <input type="range" id="pp_bloom" min="0" max="100" value="0">
+      <span class="val" id="pp_bloomVal">0</span>
+    </div>
+    <div class="row">
+      <label data-i18n="filmGrain">Film Grain</label>
+      <input type="range" id="pp_grain" min="0" max="100" value="0">
+      <span class="val" id="pp_grainVal">0</span>
+    </div>
+    <button class="btn" id="btnPP_glitch" data-i18n="glitch">Glitch</button>
+    <div id="pp_glitchOpts" style="display:none;margin-top:4px;">
+      <div class="row">
+        <label data-i18n="intensity">Intensity</label>
+        <input type="range" id="pp_glitch" min="0" max="100" value="50">
+        <span class="val" id="pp_glitchVal">50</span>
+      </div>
+      <div class="row">
+        <label data-i18n="speed">Speed</label>
+        <input type="range" id="pp_glitchSpeed" min="1" max="20" value="5">
+        <span class="val" id="pp_glitchSpeedVal">5</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:4px;">
+      <label data-i18n="rgbSplit">RGB Split</label>
+      <input type="range" id="pp_rgbsplit" min="0" max="100" value="0">
+      <span class="val" id="pp_rgbsplitVal">0</span>
+    </div>
+    <div class="row">
+      <label data-i18n="pixelate">Pixelate</label>
+      <input type="range" id="pp_pixelate" min="0" max="50" value="0">
+      <span class="val" id="pp_pixelateVal">0</span>
+    </div>
+    <button class="btn" id="btnPP_halftone" data-i18n="halftone">Halftone</button>
+    <div id="pp_halftoneOpts" style="display:none;margin-top:4px;">
+      <div class="row">
+        <label data-i18n="intensity">Intensity</label>
+        <input type="range" id="pp_halftone" min="0" max="100" value="60">
+        <span class="val" id="pp_halftoneVal">60</span>
+      </div>
+      <div class="row">
+        <label data-i18n="size">Size</label>
+        <input type="range" id="pp_halftoneSize" min="2" max="20" value="6">
+        <span class="val" id="pp_halftoneSizeVal">6</span>
+      </div>
+    </div>
+    <div class="row" style="margin-top:4px;">
+      <label data-i18n="filmDust">Film Dust</label>
+      <input type="range" id="pp_dust" min="0" max="100" value="0">
+      <span class="val" id="pp_dustVal">0</span>
+    </div>
+    <button class="btn" id="btnPP_overlay" data-i18n="colorOverlay" style="margin-top:4px;">Color Overlay</button>
+    <div id="pp_overlayOpts" style="display:none;margin-top:4px;">
+      <div class="row">
+        <label data-i18n="color">Color</label>
+        <input type="color" id="pp_overlayColor" value="#ff6600" class="color-swatch">
+      </div>
+      <div class="row">
+        <label data-i18n="intensity">Intensity</label>
+        <input type="range" id="pp_overlayAmt" min="0" max="100" value="30">
+        <span class="val" id="pp_overlayAmtVal">30</span>
       </div>
     </div>
 
@@ -1038,6 +1136,22 @@ uniform float u_gradStopCount;
 uniform float u_noise;
 uniform vec4 u_gradStops[8];
 
+// === Post-Processing ===
+uniform float u_pp_vignette;
+uniform float u_pp_scanlines;
+uniform float u_pp_crt;
+uniform float u_pp_chromatic;
+uniform float u_pp_grain;
+uniform float u_pp_glitch;
+uniform float u_pp_glitchSpeed;
+uniform float u_pp_pixelate;
+uniform float u_pp_halftone;
+uniform float u_pp_halftoneSize;
+uniform float u_pp_dust;
+uniform vec3  u_pp_overlay;
+uniform float u_pp_overlayAmt;
+uniform float u_pp_bloom;
+
 vec3 sampleGradient(float t) {
   t = clamp(t, 0.0, 1.0);
   vec3 color = u_gradStops[0].rgb;
@@ -1110,12 +1224,99 @@ float edgeDetect(vec2 uv) {
   return sqrt(gx*gx + gy*gy);
 }
 
+vec3 applyPP(vec3 col, vec2 suv) {
+  if (u_pp_vignette > 0.001) {
+    vec2 vc = suv - 0.5;
+    col *= clamp(1.0 - dot(vc, vc) * u_pp_vignette * 3.5, 0.0, 1.0);
+  }
+  if (u_pp_scanlines > 0.001) {
+    float sl = sin(suv.y * u_resolution.y * 3.14159) * 0.5 + 0.5;
+    col *= 1.0 - u_pp_scanlines * 0.45 * (1.0 - sl);
+  }
+  if (u_pp_grain > 0.001) {
+    float g = (hash(suv * u_resolution + fract(u_time * 43.7)) - 0.5) * u_pp_grain;
+    col = clamp(col + g, 0.0, 1.0);
+  }
+  if (u_pp_bloom > 0.001) {
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    col = clamp(col + col * lum * u_pp_bloom * 1.5, 0.0, 1.0);
+  }
+  if (u_pp_halftone > 0.001) {
+    float sz = max(u_pp_halftoneSize, 2.0);
+    vec2 hc = (floor(suv * u_resolution / sz) + 0.5) * sz / u_resolution;
+    float r = length(suv - hc) * min(u_resolution.x, u_resolution.y) / sz;
+    float lum = dot(col, vec3(0.299, 0.587, 0.114));
+    float inside = step(r, lum * u_pp_halftone * 1.4);
+    col = mix(col, col * inside, u_pp_halftone * 0.7);
+  }
+  if (u_pp_dust > 0.001) {
+    float dh = hash(floor(suv * u_resolution / 2.0) + floor(u_time * 10.0) * 77.0);
+    if (dh > 1.0 - u_pp_dust * 0.012) {
+      float db = hash(suv * 831.0 + u_time * 0.4);
+      col = mix(col, vec3(db * 0.6 + 0.4), 0.7);
+    }
+  }
+  if (u_pp_overlayAmt > 0.001) {
+    col = clamp(mix(col, col * u_pp_overlay * 2.0, u_pp_overlayAmt), 0.0, 1.0);
+  }
+  return col;
+}
+
 void main() {
+  vec2 suv = gl_FragCoord.xy / u_resolution;
+
+  // CRT barrel distortion
+  vec2 sampUV = v_uv;
+  if (u_pp_crt > 0.001) {
+    vec2 cc = sampUV - 0.5;
+    sampUV = sampUV + cc * dot(cc, cc) * u_pp_crt * 1.5;
+    if (sampUV.x < 0.0 || sampUV.x > 1.0 || sampUV.y < 0.0 || sampUV.y > 1.0) {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return;
+    }
+  }
+  // Pixelate
+  if (u_pp_pixelate > 1.5) {
+    float ps = u_pp_pixelate;
+    sampUV = (floor(sampUV * u_resolution / ps) * ps + ps * 0.5) / u_resolution;
+  }
+  // Glitch
+  if (u_pp_glitch > 0.001) {
+    float rowH = max(2.0, u_resolution.y * 0.04);
+    float row = floor(sampUV.y * u_resolution.y / rowH);
+    float t = floor(u_time * (u_pp_glitchSpeed * 5.0 + 1.0));
+    float gh = hash(vec2(row, t));
+    if (gh > 1.0 - u_pp_glitch * 0.3) {
+      float shift = (hash(vec2(row + 0.5, t)) - 0.5) * u_pp_glitch * 0.15;
+      sampUV.x = fract(sampUV.x + shift);
+    }
+  }
+  float chromAmt = u_pp_chromatic * 0.025;
+
   vec2 cell = floor(gl_FragCoord.xy / u_cellSize);
   vec2 cellUV = (cell + 0.5) * u_cellSize / u_resolution;
   cellUV.y = 1.0 - cellUV.y;
 
-  vec3 cellColor = texture2D(u_image, cellUV).rgb;
+  // Apply same distortions to cellUV for image sampling
+  vec2 cellSampUV = cellUV;
+  if (u_pp_crt > 0.001) {
+    vec2 cc2 = cellSampUV - 0.5;
+    cellSampUV = clamp(cellSampUV + cc2 * dot(cc2, cc2) * u_pp_crt * 1.5, 0.001, 0.999);
+  }
+  if (u_pp_pixelate > 1.5) {
+    float ps = u_pp_pixelate;
+    cellSampUV = (floor(cellSampUV * u_resolution / ps) * ps + ps * 0.5) / u_resolution;
+  }
+
+  vec3 cellColor;
+  if (chromAmt > 0.001) {
+    cellColor = vec3(
+      texture2D(u_image, cellSampUV + vec2(chromAmt, 0.0)).r,
+      texture2D(u_image, cellSampUV).g,
+      texture2D(u_image, cellSampUV - vec2(chromAmt, 0.0)).b
+    );
+  } else {
+    cellColor = texture2D(u_image, cellSampUV).rgb;
+  }
   float brightness = dot(cellColor, vec3(0.299, 0.587, 0.114));
 
   float edgeRaw = clamp(edgeDetect(cellUV) * 0.25, 0.0, 1.0);
@@ -1166,12 +1367,21 @@ void main() {
     }
     float intensity = cAlpha * (0.3 + eBri * 0.7) * u_charOpacity * flickerVal;
     vec3 result = mix(monoBg, charCol, clamp(intensity, 0.0, 1.0));
-    gl_FragColor = vec4(result, 1.0);
+    gl_FragColor = vec4(applyPP(result, suv), 1.0);
     return;
   }
 
-  vec3 orig = texture2D(u_image, v_uv).rgb;
-  vec3 blurred = blurSample(v_uv, u_blur);
+  vec3 orig;
+  if (chromAmt > 0.001) {
+    orig = vec3(
+      texture2D(u_image, sampUV + vec2(chromAmt, 0.0)).r,
+      texture2D(u_image, sampUV).g,
+      texture2D(u_image, sampUV - vec2(chromAmt, 0.0)).b
+    );
+  } else {
+    orig = texture2D(u_image, sampUV).rgb;
+  }
+  vec3 blurred = blurSample(sampUV, u_blur);
   float maskVal = u_maskEnabled > 0.5 ? texture2D(u_maskTex, v_uv).r : 1.0;
   vec3 bg = mix(orig, blurred, min(u_blur / 10.0 * maskVal, 1.0)) * u_bgDarken;
   float grain = (hash(gl_FragCoord.xy + fract(u_time * 100.0)) - 0.5) * u_noise;
@@ -1179,7 +1389,7 @@ void main() {
 
   bool showChar = hash(cell) < u_density;
   float fade = smoothstep(u_threshold, u_threshold + u_fadeRange, eBri);
-  if (fade < 0.01 || !showChar) { gl_FragColor = vec4(bg, 1.0); return; }
+  if (fade < 0.01 || !showChar) { gl_FragColor = vec4(applyPP(bg, suv), 1.0); return; }
 
   float cVal = pow(clamp(eBri + waveOff * 0.2, 0.0, 1.0), u_charGamma);
   vec2 lp = fract(gl_FragCoord.xy / u_cellSize);
@@ -1223,7 +1433,7 @@ void main() {
   float regionMult = inRegion ? u_regionBright : 1.0;
   float fA = clamp(cAlpha * fade * u_charOpacity * flickerVal * regionMult, 0.0, 1.0);
   vec3 result = min(bg + fcc * fA * 0.8, vec3(1.0));
-  gl_FragColor = vec4(result, 1.0);
+  gl_FragColor = vec4(applyPP(result, suv), 1.0);
 }`;
 
 function compileShader(src, type) {
@@ -1253,7 +1463,10 @@ const loc = {};
  'u_noise',
  'u_gradientOn','u_gradientDir','u_gradientIntensity','u_gradStopCount',
  'u_charFrac','u_charSoft','u_maskTex','u_maskEnabled',
- 'u_regionActive','u_regionRect','u_regionCharCount','u_regionBright','u_regionBold'
+ 'u_regionActive','u_regionRect','u_regionCharCount','u_regionBright','u_regionBold',
+ 'u_pp_vignette','u_pp_scanlines','u_pp_crt','u_pp_chromatic','u_pp_grain',
+ 'u_pp_glitch','u_pp_glitchSpeed','u_pp_pixelate','u_pp_halftone','u_pp_halftoneSize',
+ 'u_pp_dust','u_pp_overlay','u_pp_overlayAmt','u_pp_bloom'
 ].forEach(n => { loc[n] = gl.getUniformLocation(prog, n); });
 loc.u_gradStops = [];
 for (let i = 0; i < 8; i++) {
@@ -1289,6 +1502,10 @@ const params = {
   flickerSpeed: 0, flickerIntensity: 0.5, flickerRandom: 0.5,
   gradientOn: 0, gradientDir: 0, gradientIntensity: 1.0,
   maskEnabled: 0,
+  pp_vignette: 0, pp_scanlines: 0, pp_crt: 0, pp_chromatic: 0,
+  pp_grain: 0, pp_glitch: 0, pp_glitchSpeed: 5, pp_pixelate: 0,
+  pp_halftone: 0, pp_halftoneSize: 6, pp_dust: 0,
+  pp_overlay: [1, 0.4, 0], pp_overlayAmt: 0, pp_bloom: 0, pp_rgbsplit: 0,
   regionActive: 0, regionRect: [0.5, 0.5, 0.2, 0], regionBright: 1.0, regionBold: 0.0,
   gradStops: [
     { r: 1, g: 0.2, b: 0.6, pos: 0 },
@@ -1366,6 +1583,20 @@ function render() {
       gl.uniform4f(loc.u_gradStops[i], 0, 0, 0, 1);
     }
   }
+  gl.uniform1f(loc.u_pp_vignette, params.pp_vignette);
+  gl.uniform1f(loc.u_pp_scanlines, params.pp_scanlines);
+  gl.uniform1f(loc.u_pp_crt, params.pp_crt);
+  gl.uniform1f(loc.u_pp_chromatic, params.pp_chromatic + params.pp_rgbsplit);
+  gl.uniform1f(loc.u_pp_grain, params.pp_grain);
+  gl.uniform1f(loc.u_pp_glitch, params.pp_glitch);
+  gl.uniform1f(loc.u_pp_glitchSpeed, params.pp_glitchSpeed);
+  gl.uniform1f(loc.u_pp_pixelate, params.pp_pixelate);
+  gl.uniform1f(loc.u_pp_halftone, params.pp_halftone);
+  gl.uniform1f(loc.u_pp_halftoneSize, params.pp_halftoneSize);
+  gl.uniform1f(loc.u_pp_dust, params.pp_dust);
+  gl.uniform3f(loc.u_pp_overlay, params.pp_overlay[0], params.pp_overlay[1], params.pp_overlay[2]);
+  gl.uniform1f(loc.u_pp_overlayAmt, params.pp_overlayAmt);
+  gl.uniform1f(loc.u_pp_bloom, params.pp_bloom);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
@@ -1585,6 +1816,53 @@ bindSlider('colorGrad', 'colorGradVal', v => { params.colorGrad = v / 100; });
 bindSlider('charOpacity', 'charOpacityVal', v => { params.charOpacity = v / 100; });
 bindSlider('charSoft', 'charSoftVal', v => { params.charSoft = v / 100; });
 bindSlider('fadeRange', 'fadeRangeVal', v => { params.fadeRange = v / 200; });
+
+// ============ Post-Processing Controls ============
+bindSlider('pp_vignette',    'pp_vignetteVal',    v => { params.pp_vignette    = v / 100; });
+bindSlider('pp_scanlines',   'pp_scanlinesVal',   v => { params.pp_scanlines   = v / 100; });
+bindSlider('pp_crt',         'pp_crtVal',         v => { params.pp_crt         = v / 100; });
+bindSlider('pp_chromatic',   'pp_chromaticVal',   v => { params.pp_chromatic   = v / 100; });
+bindSlider('pp_bloom',       'pp_bloomVal',       v => { params.pp_bloom       = v / 100; });
+bindSlider('pp_grain',       'pp_grainVal',       v => { params.pp_grain       = v / 100; });
+bindSlider('pp_glitch',      'pp_glitchVal',      v => { params.pp_glitch      = v / 100; });
+bindSlider('pp_glitchSpeed', 'pp_glitchSpeedVal', v => { params.pp_glitchSpeed = v; });
+bindSlider('pp_rgbsplit',    'pp_rgbsplitVal',    v => { params.pp_rgbsplit    = v / 100; });
+bindSlider('pp_pixelate',    'pp_pixelateVal',    v => { params.pp_pixelate    = v; });
+bindSlider('pp_halftone',    'pp_halftoneVal',    v => { params.pp_halftone    = v / 100; });
+bindSlider('pp_halftoneSize','pp_halftoneSizeVal',v => { params.pp_halftoneSize = v; });
+bindSlider('pp_dust',        'pp_dustVal',        v => { params.pp_dust        = v / 100; });
+bindSlider('pp_overlayAmt',  'pp_overlayAmtVal',  v => { params.pp_overlayAmt  = v / 100; });
+
+document.getElementById('btnPP_glitch').onclick = function() {
+  const opts = document.getElementById('pp_glitchOpts');
+  const on = opts.style.display === 'none';
+  opts.style.display = on ? '' : 'none';
+  this.classList.toggle('active', on);
+  if (!on) { params.pp_glitch = 0; rerender(); }
+};
+document.getElementById('btnPP_halftone').onclick = function() {
+  const opts = document.getElementById('pp_halftoneOpts');
+  const on = opts.style.display === 'none';
+  opts.style.display = on ? '' : 'none';
+  this.classList.toggle('active', on);
+  if (!on) { params.pp_halftone = 0; rerender(); }
+};
+document.getElementById('btnPP_overlay').onclick = function() {
+  const opts = document.getElementById('pp_overlayOpts');
+  const on = opts.style.display === 'none';
+  opts.style.display = on ? '' : 'none';
+  this.classList.toggle('active', on);
+  if (!on) { params.pp_overlayAmt = 0; rerender(); }
+};
+document.getElementById('pp_overlayColor').addEventListener('input', e => {
+  const hex = e.target.value;
+  params.pp_overlay = [
+    parseInt(hex.slice(1,3),16)/255,
+    parseInt(hex.slice(3,5),16)/255,
+    parseInt(hex.slice(5,7),16)/255
+  ];
+  rerender();
+});
 
 // ============ Gradient ============
 const btnGradient = document.getElementById('btnGradient');
@@ -1934,6 +2212,15 @@ document.querySelectorAll('input[name="exportFmt"]').forEach(r => {
 });
 bindSlider('recordDuration', 'recordDurationVal', () => {});
 
+let exportScale = 1;
+document.getElementById('exportScaleGroup').addEventListener('click', e => {
+  const btn = e.target.closest('[data-scale]');
+  if (!btn) return;
+  exportScale = Number(btn.dataset.scale);
+  document.querySelectorAll('#exportScaleGroup [data-scale]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
 function download(blob, name) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -1946,11 +2233,29 @@ btnExport.onclick = () => {
   const fmt = document.querySelector('input[name="exportFmt"]:checked').value;
 
   if (fmt === 'png' || fmt === 'jpg') {
-    if (source === '3d') renderThreeFrame();
-    else if (source === 'video') uploadAndRender(video);
-    else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
     const mime = fmt === 'png' ? 'image/png' : 'image/jpeg';
-    canvas.toBlob(blob => download(blob, `ascii_render.${fmt}`), mime, 0.95);
+    if (exportScale === 1) {
+      if (source === '3d') renderThreeFrame();
+      else if (source === 'video') uploadAndRender(video);
+      else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+      canvas.toBlob(blob => download(blob, `ascii_render.${fmt}`), mime, 0.95);
+    } else {
+      const origW = canvas.width, origH = canvas.height;
+      canvas.width = origW * exportScale;
+      canvas.height = origH * exportScale;
+      if (source === '3d') renderThreeFrame();
+      else if (source === 'video') uploadAndRender(video);
+      else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+      else render();
+      canvas.toBlob(blob => {
+        download(blob, `ascii_render_${exportScale}x.${fmt}`);
+        canvas.width = origW;
+        canvas.height = origH;
+        if (source === '3d') renderThreeFrame();
+        else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+        else render();
+      }, mime, 0.95);
+    }
     return;
   }
 
@@ -2611,6 +2916,12 @@ const i18n = {
     loading: 'Loading: ', loadFailed: 'Load failed: ',
     unsupported: 'Unsupported format',
     webglError: 'WebGL not available',
+    resolution: 'Resolution',
+    postProcessing: 'Post-Processing',
+    vignette: 'Vignette', scanLines: 'Scan Lines', crtCurve: 'CRT Curve',
+    chromatic: 'Chromatic', bloom: 'Bloom', filmGrain: 'Film Grain',
+    glitch: 'Glitch', rgbSplit: 'RGB Split', pixelate: 'Pixelate',
+    halftone: 'Halftone', filmDust: 'Film Dust', colorOverlay: 'Color Overlay',
   },
   zh: {
     hint: '导入图片或视频开始使用',
@@ -2652,6 +2963,12 @@ const i18n = {
     loading: '加载中: ', loadFailed: '加载失败: ',
     unsupported: '不支持的格式',
     webglError: 'WebGL 不可用',
+    resolution: '分辨率',
+    postProcessing: '后处理',
+    vignette: '暗角', scanLines: '扫描线', crtCurve: 'CRT 弯曲',
+    chromatic: '色差', bloom: '辉光', filmGrain: '胶片颗粒',
+    glitch: '故障', rgbSplit: 'RGB 分离', pixelate: '像素化',
+    halftone: '半调', filmDust: '胶片灰尘', colorOverlay: '颜色叠加',
   }
 };
 
