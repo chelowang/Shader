@@ -584,8 +584,8 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
     <div class="char-hint" data-i18n="charHint">Dark to light, first char is space</div>
     <div class="row">
       <label data-i18n="size">Size</label>
-      <input type="range" id="cellSize" min="4" max="24" value="10">
-      <span class="val" id="cellSizeVal">10</span>
+      <input type="range" id="cellSize" min="4" max="48" value="16">
+      <span class="val" id="cellSizeVal">16</span>
     </div>
     <div class="row">
       <label data-i18n="spacing">Spacing</label>
@@ -1282,7 +1282,7 @@ gl.uniform1i(loc.u_maskTex, 3);
 // ============ State ============
 let source = null, animId = null, currentImgSrc = null;
 const params = {
-  cellSize: 10, charSpacing: 4, bgDarken: 0.8, threshold: 0.30, blur: 8,
+  cellSize: 16, charSpacing: 4, bgDarken: 0.8, threshold: 0.30, blur: 8,
   waveIntensity: 0.4, waveScale: 20, density: 0.7,
   edgeBoost: 0.3, edgeThreshold: 0.3, edgeFade: 0.1, colorGrad: 0.5, charOpacity: 0.8, charSoft: 0, fadeRange: 0.4, charGamma: 1.0, noise: 0,
   monoMode: 0, monoBg: [0.102, 0.153, 0.267], monoChar: [1, 1, 1], invert: 0,
