@@ -1390,8 +1390,9 @@ void main() {
     orig = texture2D(u_image, sampUV).rgb;
   }
   vec3 blurred = blurSample(sampUV, u_blur);
-  float maskVal = u_maskEnabled > 0.5 ? texture2D(u_maskTex, v_uv).r : 1.0;
-  vec3 bg = mix(orig, blurred, min(u_blur / 10.0 * maskVal, 1.0)) * u_bgDarken;
+  float maskVal = u_maskEnabled > 0.5 ? texture2D(u_maskTex, v_uv).r : 0.0;
+  float blurMix = clamp(u_blur / 10.0 + maskVal * 0.9, 0.0, 1.0);
+  vec3 bg = mix(orig, blurred, blurMix) * u_bgDarken;
   float grain = (hash(gl_FragCoord.xy + fract(u_time * 100.0)) - 0.5) * u_noise;
   bg = clamp(bg + grain, 0.0, 1.0);
 
@@ -1440,7 +1441,7 @@ void main() {
   }
 
   float regionMult = inRegion ? u_regionBright : 1.0;
-  float fA = clamp(cAlpha * fade * u_charOpacity * flickerVal * regionMult, 0.0, 1.0);
+  float fA = clamp(cAlpha * fade * u_charOpacity * flickerVal * regionMult * (1.0 - maskVal * 0.95), 0.0, 1.0);
   vec3 result = min(bg + fcc * fA * 0.8, vec3(1.0));
   gl_FragColor = vec4(applyPP(result, suv), 1.0);
 }`;
