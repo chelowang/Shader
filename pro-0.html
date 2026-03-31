@@ -690,50 +690,6 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
 
     <div class="divider"></div>
 
-    <!-- 导出 -->
-    <div id="exportSection" style="display:none;">
-      <div class="panel-title" data-i18n="export">Export</div>
-      <div class="export-formats">
-        <label class="export-option">
-          <input type="radio" name="exportFmt" value="png" checked>
-          <span class="export-radio"></span>
-          <span class="export-label">PNG</span>
-        </label>
-        <label class="export-option">
-          <input type="radio" name="exportFmt" value="jpg">
-          <span class="export-radio"></span>
-          <span class="export-label">JPG</span>
-        </label>
-        <label class="export-option">
-          <input type="radio" name="exportFmt" value="gif">
-          <span class="export-radio"></span>
-          <span class="export-label">GIF</span>
-          <span class="export-badge" data-i18n="animated">Animated</span>
-        </label>
-        <label class="export-option">
-          <input type="radio" name="exportFmt" value="mp4">
-          <span class="export-radio"></span>
-          <span class="export-label">MP4</span>
-          <span class="export-badge" data-i18n="animation">Animation</span>
-        </label>
-      </div>
-      <div id="exportDuration" class="row" style="display:none;margin-top:4px;">
-        <label data-i18n="duration">Duration(s)</label>
-        <input type="range" id="recordDuration" min="1" max="30" value="5">
-        <span class="val" id="recordDurationVal">5</span>
-      </div>
-      <div class="row" style="margin-top:4px;">
-        <label data-i18n="resolution">Resolution</label>
-        <div class="btn-group" id="exportScaleGroup">
-          <button class="btn active" data-scale="1">1×</button>
-          <button class="btn" data-scale="2">2×</button>
-          <button class="btn" data-scale="3">3×</button>
-          <button class="btn" data-scale="4">4×</button>
-        </div>
-      </div>
-      <div class="divider"></div>
-    </div>
-
     <!-- 颜色 -->
     <div class="panel-title" data-i18n="color">Color</div>
     <button class="btn" id="btnGradient" data-i18n="enableGradient">Enable Gradient</button>
@@ -1004,6 +960,49 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
         <button class="btn" data-view="right" data-i18n="right">Right</button>
         <button class="btn" data-view="top" data-i18n="top">Top</button>
         <button class="btn" data-view="iso" data-i18n="iso">Iso</button>
+      </div>
+    </div>
+
+    <div id="exportSection" style="display:none;">
+      <div class="divider"></div>
+      <div class="panel-title" data-i18n="export">Export</div>
+      <div class="export-formats">
+        <label class="export-option">
+          <input type="radio" name="exportFmt" value="png" checked>
+          <span class="export-radio"></span>
+          <span class="export-label">PNG</span>
+        </label>
+        <label class="export-option">
+          <input type="radio" name="exportFmt" value="jpg">
+          <span class="export-radio"></span>
+          <span class="export-label">JPG</span>
+        </label>
+        <label class="export-option">
+          <input type="radio" name="exportFmt" value="gif">
+          <span class="export-radio"></span>
+          <span class="export-label">GIF</span>
+          <span class="export-badge" data-i18n="animated">Animated</span>
+        </label>
+        <label class="export-option">
+          <input type="radio" name="exportFmt" value="mp4">
+          <span class="export-radio"></span>
+          <span class="export-label">MP4</span>
+          <span class="export-badge" data-i18n="animation">Animation</span>
+        </label>
+      </div>
+      <div id="exportDuration" class="row" style="display:none;margin-top:4px;">
+        <label data-i18n="duration">Duration(s)</label>
+        <input type="range" id="recordDuration" min="1" max="30" value="5">
+        <span class="val" id="recordDurationVal">5</span>
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <label data-i18n="resolution">Resolution</label>
+        <div class="btn-group" id="exportScaleGroup">
+          <button class="btn active" data-scale="1">1×</button>
+          <button class="btn" data-scale="2">2×</button>
+          <button class="btn" data-scale="3">3×</button>
+          <button class="btn" data-scale="4">4×</button>
+        </div>
       </div>
     </div>
 
