@@ -562,7 +562,6 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
     <div class="canvas-wrapper">
       <canvas id="glCanvas"></canvas>
       <div id="selectionOverlay" style="display:none;position:absolute;border:1.5px dashed #d4a574;box-sizing:border-box;pointer-events:none;"></div>
-      <canvas id="maskCanvas" style="display:none;position:absolute;max-width:100%;max-height:100%;object-fit:contain;opacity:0.45;pointer-events:none;"></canvas>
       <p class="hint" id="hint" data-i18n="hint">Import an image or video to start</p>
     </div>
 
@@ -687,21 +686,6 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
       <label data-i18n="blur">Blur</label>
       <input type="range" id="blur" min="0" max="30" value="8">
       <span class="val" id="blurVal">8</span>
-    </div>
-
-    <button class="btn" id="btnEnableMask" data-i18n="enableMask" style="margin-top:6px;">Enable Mask</button>
-    <div id="maskControls" style="display:none;margin-top:6px;">
-      <div class="btn-group" style="margin-bottom:6px;">
-        <button class="btn active" id="btnMaskBrush" data-i18n="brush">Brush</button>
-        <button class="btn" id="btnMaskEraser" data-i18n="eraser">Eraser</button>
-      </div>
-      <div class="row">
-        <label data-i18n="brushSize">Size</label>
-        <input type="range" id="maskBrushSize" min="5" max="120" value="30">
-        <span class="val" id="maskBrushSizeVal">30</span>
-      </div>
-      <button class="btn" id="btnShowOverlay" data-i18n="showOverlay" style="margin-top:2px;">Show Overlay</button>
-      <button class="btn" id="btnClearMask" data-i18n="clearMask" style="margin-top:4px;">Clear Mask</button>
     </div>
 
     <div class="divider"></div>
@@ -1113,8 +1097,6 @@ uniform vec2 u_resolution;
 uniform vec2 u_cellSize;
 uniform float u_charCount;
 uniform float u_bgDarken;
-uniform sampler2D u_maskTex;
-uniform float u_maskEnabled;
 uniform float u_threshold;
 uniform float u_blur;
 uniform float u_waveIntensity;
@@ -1390,9 +1372,7 @@ void main() {
     orig = texture2D(u_image, sampUV).rgb;
   }
   vec3 blurred = blurSample(sampUV, u_blur);
-  float maskVal = u_maskEnabled > 0.5 ? texture2D(u_maskTex, v_uv).r : 0.0;
-  float blurMix = clamp(u_blur / 10.0 + maskVal * 0.9, 0.0, 1.0);
-  vec3 bg = mix(orig, blurred, blurMix) * u_bgDarken;
+  vec3 bg = mix(orig, blurred, clamp(u_blur / 10.0, 0.0, 1.0)) * u_bgDarken;
   float grain = (hash(gl_FragCoord.xy + fract(u_time * 100.0)) - 0.5) * u_noise;
   bg = clamp(bg + grain, 0.0, 1.0);
 
@@ -1441,7 +1421,7 @@ void main() {
   }
 
   float regionMult = inRegion ? u_regionBright : 1.0;
-  float fA = clamp(cAlpha * fade * u_charOpacity * flickerVal * regionMult * (1.0 - maskVal * 0.95), 0.0, 1.0);
+  float fA = clamp(cAlpha * fade * u_charOpacity * flickerVal * regionMult, 0.0, 1.0);
   vec3 result = min(bg + fcc * fA * 0.8, vec3(1.0));
   gl_FragColor = vec4(applyPP(result, suv), 1.0);
 }`;
@@ -1472,7 +1452,7 @@ const loc = {};
  'u_flickerSpeed','u_flickerIntensity','u_flickerRandom',
  'u_noise',
  'u_gradientOn','u_gradientDir','u_gradientIntensity','u_gradStopCount',
- 'u_charFrac','u_charSoft','u_maskTex','u_maskEnabled',
+ 'u_charFrac','u_charSoft',
  'u_regionActive','u_regionRect','u_regionCharCount','u_regionBright','u_regionBold',
  'u_charDither',
  'u_pp_vignette','u_pp_scanlines','u_pp_crt','u_pp_chromatic','u_pp_grain',
@@ -1497,11 +1477,9 @@ function createTexture(unit, filter) {
 const texImage = createTexture(0, gl.LINEAR);
 const texAtlas = createTexture(1, gl.LINEAR);
 const texAtlas2 = createTexture(2, gl.LINEAR);
-const texMask = createTexture(3, gl.LINEAR);
 gl.uniform1i(loc.u_image, 0);
 gl.uniform1i(loc.u_charAtlas, 1);
 gl.uniform1i(loc.u_charAtlas2, 2);
-gl.uniform1i(loc.u_maskTex, 3);
 
 // ============ State ============
 let source = null, animId = null, currentImgSrc = null;
@@ -1512,7 +1490,6 @@ const params = {
   monoMode: 0, monoBg: [0.102, 0.153, 0.267], monoChar: [1, 1, 1], invert: 0,
   flickerSpeed: 0, flickerIntensity: 0.5, flickerRandom: 0.5,
   gradientOn: 0, gradientDir: 0, gradientIntensity: 1.0,
-  maskEnabled: 0,
   pp_vignette: 0, pp_scanlines: 0, pp_crt: 0, pp_chromatic: 0,
   pp_grain: 0, pp_glitch: 0, pp_glitchSpeed: 5, pp_pixelate: 0,
   pp_halftone: 0, pp_halftoneSize: 6, pp_dust: 0,
@@ -1555,7 +1532,6 @@ function render() {
   gl.uniform1f(loc.u_charDither, params.charDither);
   gl.uniform1f(loc.u_charCount, charCount);
   gl.uniform1f(loc.u_bgDarken, params.bgDarken);
-  gl.uniform1f(loc.u_maskEnabled, params.maskEnabled);
   gl.uniform1f(loc.u_threshold, params.threshold);
   gl.uniform1f(loc.u_blur, params.blur);
   gl.uniform1f(loc.u_waveIntensity, params.waveIntensity);
@@ -1668,7 +1644,6 @@ function loadImageFile(file) {
     document.getElementById('exportSection').style.display = '';
     document.getElementById('btnExport').style.display = '';
     uploadCharAtlas(); uploadAndRender(img);
-    resizeMaskCanvas(img.width, img.height);
     startFlickerLoop();
   };
   img.src = URL.createObjectURL(file);
@@ -1682,111 +1657,9 @@ function loadVideoFile(file) {
     document.getElementById('exportSection').style.display = '';
     document.getElementById('btnExport').style.display = '';
     uploadCharAtlas(); video.play(); videoLoop();
-    resizeMaskCanvas(video.videoWidth, video.videoHeight);
   };
 }
 
-
-// ============ Mask ============
-const maskCanvas = document.getElementById('maskCanvas');
-const maskCtx = maskCanvas.getContext('2d');
-let maskMode = 'brush'; // 'brush' or 'eraser'
-let maskPainting = false;
-let maskOverlayVisible = false;
-
-function resizeMaskCanvas(w, h) {
-  maskCanvas.width = w;
-  maskCanvas.height = h;
-  // fill black = no blur
-  maskCtx.fillStyle = '#000';
-  maskCtx.fillRect(0, 0, w, h);
-  uploadMaskTexture();
-}
-
-function uploadMaskTexture() {
-  gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, texMask);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, maskCanvas);
-}
-
-// Paint on the mask canvas (white = blur, black = no blur)
-function maskPaint(e) {
-  const rect = maskCanvas.getBoundingClientRect();
-  const scaleX = maskCanvas.width / rect.width;
-  const scaleY = maskCanvas.height / rect.height;
-  const x = (e.clientX - rect.left) * scaleX;
-  const y = (e.clientY - rect.top) * scaleY;
-  const r = Number(document.getElementById('maskBrushSize').value) * scaleX;
-  maskCtx.beginPath();
-  maskCtx.arc(x, y, r, 0, Math.PI * 2);
-  maskCtx.fillStyle = maskMode === 'brush' ? '#fff' : '#000';
-  maskCtx.fill();
-  uploadMaskTexture();
-  rerender();
-}
-
-// Show/hide overlay: position it over the WebGL canvas
-function updateMaskOverlayPosition() {
-  maskCanvas.style.width = canvas.offsetWidth + 'px';
-  maskCanvas.style.height = canvas.offsetHeight + 'px';
-}
-
-document.getElementById('btnEnableMask').onclick = function() {
-  const enabled = params.maskEnabled < 0.5;
-  params.maskEnabled = enabled ? 1 : 0;
-  this.dataset.i18n = enabled ? 'disableMask' : 'enableMask';
-  this.textContent = t(this.dataset.i18n);
-  this.classList.toggle('active', enabled);
-  document.getElementById('maskControls').style.display = enabled ? '' : 'none';
-  if (enabled) {
-    // make overlay interactive for painting
-    maskCanvas.style.pointerEvents = 'auto';
-    maskCanvas.style.display = maskOverlayVisible ? '' : 'none';
-    updateMaskOverlayPosition();
-  } else {
-    maskCanvas.style.pointerEvents = 'none';
-    maskCanvas.style.display = 'none';
-  }
-  rerender();
-};
-
-document.getElementById('btnMaskBrush').onclick = function() {
-  maskMode = 'brush';
-  this.classList.add('active');
-  document.getElementById('btnMaskEraser').classList.remove('active');
-};
-document.getElementById('btnMaskEraser').onclick = function() {
-  maskMode = 'eraser';
-  this.classList.add('active');
-  document.getElementById('btnMaskBrush').classList.remove('active');
-};
-
-document.getElementById('maskBrushSize').addEventListener('input', function() {
-  document.getElementById('maskBrushSizeVal').textContent = this.value;
-});
-
-document.getElementById('btnShowOverlay').onclick = function() {
-  maskOverlayVisible = !maskOverlayVisible;
-  this.dataset.i18n = maskOverlayVisible ? 'hideOverlay' : 'showOverlay';
-  this.textContent = t(this.dataset.i18n);
-  this.classList.toggle('active', maskOverlayVisible);
-  if (params.maskEnabled > 0.5) {
-    maskCanvas.style.display = maskOverlayVisible ? '' : 'none';
-    if (maskOverlayVisible) updateMaskOverlayPosition();
-  }
-};
-
-document.getElementById('btnClearMask').onclick = function() {
-  maskCtx.fillStyle = '#000';
-  maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
-  uploadMaskTexture();
-  rerender();
-};
-
-// Mouse events on the mask canvas for painting
-maskCanvas.addEventListener('mousedown', e => { maskPainting = true; maskPaint(e); });
-maskCanvas.addEventListener('mousemove', e => { if (maskPainting) maskPaint(e); });
-window.addEventListener('mouseup', () => { maskPainting = false; });
 
 
 // ============ Custom Characters ============
@@ -2909,9 +2782,6 @@ const i18n = {
     enableInvert: 'Invert', disableInvert: 'Invert On',
     background: 'Background', charColor: 'Char Color',
     blur: 'Blur',
-    enableMask: 'Enable Mask', disableMask: 'Disable Mask',
-    brush: 'Brush', eraser: 'Eraser', brushSize: 'Size',
-    showOverlay: 'Show Overlay', hideOverlay: 'Hide Overlay', clearMask: 'Clear Mask',
     flicker: 'Flicker', enableFlicker: 'Enable Flicker', disableFlicker: 'Disable Flicker',
     speed: 'Speed', random: 'Random',
     wave: 'Wave', scale: 'Scale', colorShift: 'Color Shift',
@@ -2956,9 +2826,6 @@ const i18n = {
     enableInvert: '反转', disableInvert: '反转中',
     background: '背景', charColor: '字符颜色',
     blur: '模糊',
-    enableMask: '启用遮罩', disableMask: '禁用遮罩',
-    brush: '画笔', eraser: '橡皮', brushSize: '大小',
-    showOverlay: '显示遮罩', hideOverlay: '隐藏遮罩', clearMask: '清除遮罩',
     flicker: '闪烁', enableFlicker: '启用闪烁', disableFlicker: '禁用闪烁',
     speed: '速度', random: '随机',
     wave: '波浪', scale: '缩放', colorShift: '色彩偏移',
