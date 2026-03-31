@@ -552,7 +552,7 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
   <div class="nav-brand">ASCII Renderer</div>
   <div class="nav-links">
     <a href="https://github.com/chelowang/Shader" target="_blank">GitHub</a>
-    <button class="lang-toggle" id="langToggle" onclick="toggleLang()">中文</button>
+    <button class="lang-toggle" id="langToggle" onclick="toggleLang()">EN</button>
   </div>
 </nav>
 
@@ -2847,7 +2847,7 @@ const i18n = {
   }
 };
 
-let currentLang = 'en';
+let currentLang = 'zh';
 
 function t(key) {
   return i18n[currentLang][key] || i18n.en[key] || key;
