@@ -607,6 +607,11 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
       <input type="range" id="charSoft" min="0" max="100" value="0">
       <span class="val" id="charSoftVal">0</span>
     </div>
+    <div class="row">
+      <label data-i18n="spread">Spread</label>
+      <input type="range" id="charDither" min="0" max="100" value="0">
+      <span class="val" id="charDitherVal">0</span>
+    </div>
 
     <div class="divider"></div>
 
@@ -1151,6 +1156,7 @@ uniform float u_pp_dust;
 uniform vec3  u_pp_overlay;
 uniform float u_pp_overlayAmt;
 uniform float u_pp_bloom;
+uniform float u_charDither;
 
 vec3 sampleGradient(float t) {
   t = clamp(t, 0.0, 1.0);
@@ -1357,7 +1363,8 @@ void main() {
     vec3 charCol = u_monoChar;
     if (u_gradientOn > 0.5) charCol = mix(u_monoChar, gradColor, u_gradientIntensity);
     float cVal = pow(clamp(eBri + waveOff * 0.2, 0.0, 1.0), u_charGamma);
-    float cIdx = floor(cVal * (u_charCount - 1.0) + 0.5);
+    float cDither = (hash(cell + 31.7) - 0.5) * u_charDither;
+    float cIdx = floor(clamp(cVal + cDither, 0.0, 1.0) * (u_charCount - 1.0) + 0.5);
     vec2 lp = fract(gl_FragCoord.xy / u_cellSize);
     lp.y = 1.0 - lp.y;
     float cAlpha = 0.0;
@@ -1409,7 +1416,8 @@ void main() {
       cAlpha = sampleChar(u_charAtlas2, ruv, u_regionCharCount, u_charSoft);
       cAlpha = clamp(cAlpha + u_regionBold * 0.4 - 0.1, 0.0, 1.0);
     } else {
-      float cIdx = floor(cVal * (u_charCount - 1.0) + 0.5);
+      float cDither = (hash(cell + 31.7) - 0.5) * u_charDither;
+    float cIdx = floor(clamp(cVal + cDither, 0.0, 1.0) * (u_charCount - 1.0) + 0.5);
       vec2 cuv = vec2((cIdx + atlasLp.x) / u_charCount, atlasLp.y);
       cAlpha = sampleChar(u_charAtlas, cuv, u_charCount, u_charSoft);
     }
@@ -1464,6 +1472,7 @@ const loc = {};
  'u_gradientOn','u_gradientDir','u_gradientIntensity','u_gradStopCount',
  'u_charFrac','u_charSoft','u_maskTex','u_maskEnabled',
  'u_regionActive','u_regionRect','u_regionCharCount','u_regionBright','u_regionBold',
+ 'u_charDither',
  'u_pp_vignette','u_pp_scanlines','u_pp_crt','u_pp_chromatic','u_pp_grain',
  'u_pp_glitch','u_pp_glitchSpeed','u_pp_pixelate','u_pp_halftone','u_pp_halftoneSize',
  'u_pp_dust','u_pp_overlay','u_pp_overlayAmt','u_pp_bloom'
@@ -1497,7 +1506,7 @@ let source = null, animId = null, currentImgSrc = null;
 const params = {
   cellSize: 16, charSpacing: 4, bgDarken: 0.8, threshold: 0.30, blur: 8,
   waveIntensity: 0.4, waveScale: 20, density: 0.7,
-  edgeBoost: 0.3, edgeThreshold: 0.3, edgeFade: 0.1, colorGrad: 0.5, charOpacity: 0.8, charSoft: 0, fadeRange: 0.4, charGamma: 1.0, noise: 0,
+  edgeBoost: 0.3, edgeThreshold: 0.3, edgeFade: 0.1, colorGrad: 0.5, charOpacity: 0.8, charSoft: 0, charDither: 0, fadeRange: 0.4, charGamma: 1.0, noise: 0,
   monoMode: 0, monoBg: [0.102, 0.153, 0.267], monoChar: [1, 1, 1], invert: 0,
   flickerSpeed: 0, flickerIntensity: 0.5, flickerRandom: 0.5,
   gradientOn: 0, gradientDir: 0, gradientIntensity: 1.0,
@@ -1541,6 +1550,7 @@ function render() {
   gl.uniform2f(loc.u_cellSize, cellW, cellH);
   gl.uniform2f(loc.u_charFrac, charW / cellW, charH / cellH);
   gl.uniform1f(loc.u_charSoft, params.charSoft);
+  gl.uniform1f(loc.u_charDither, params.charDither);
   gl.uniform1f(loc.u_charCount, charCount);
   gl.uniform1f(loc.u_bgDarken, params.bgDarken);
   gl.uniform1f(loc.u_maskEnabled, params.maskEnabled);
@@ -1815,6 +1825,7 @@ bindSlider('noise', 'noiseVal', v => { params.noise = v / 100; });
 bindSlider('colorGrad', 'colorGradVal', v => { params.colorGrad = v / 100; });
 bindSlider('charOpacity', 'charOpacityVal', v => { params.charOpacity = v / 100; });
 bindSlider('charSoft', 'charSoftVal', v => { params.charSoft = v / 100; });
+bindSlider('charDither', 'charDitherVal', v => { params.charDither = v / 100; });
 bindSlider('fadeRange', 'fadeRangeVal', v => { params.fadeRange = v / 200; });
 
 // ============ Post-Processing Controls ============
@@ -2883,7 +2894,7 @@ const i18n = {
     export: 'Export', animated: 'Animated', animation: 'Animation',
     duration: 'Duration(s)',
     characters: 'Characters', charHint: 'Dark to light, first char is space',
-    size: 'Size', spacing: 'Spacing', density: 'Density', opacity: 'Opacity', softness: 'Softness',
+    size: 'Size', spacing: 'Spacing', density: 'Density', opacity: 'Opacity', softness: 'Softness', spread: 'Spread',
     brightness: 'Brightness', threshold: 'Threshold', fade: 'Fade',
     contrast: 'Gamma', edgeBoost: 'Edge Boost', edgeMin: 'Edge Min', edgeWidth: 'Edge Width', noise: 'Noise',
     color: 'Color', enableGradient: 'Enable Gradient', disableGradient: 'Disable Gradient',
@@ -2930,7 +2941,7 @@ const i18n = {
     export: '导出', animated: '动图', animation: '动画',
     duration: '时长(秒)',
     characters: '字符', charHint: '从暗到亮，第一个字符为空格',
-    size: '大小', spacing: '间距', density: '密度', opacity: '不透明度', softness: '柔化',
+    size: '大小', spacing: '间距', density: '密度', opacity: '不透明度', softness: '柔化', spread: '分布',
     brightness: '亮度', threshold: '阈值', fade: '渐隐',
     contrast: 'Gamma', edgeBoost: '边缘增强', edgeMin: '边缘最小值', edgeWidth: '边缘宽度', noise: '噪点',
     color: '颜色', enableGradient: '启用渐变', disableGradient: '禁用渐变',
