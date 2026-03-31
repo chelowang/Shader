@@ -136,6 +136,7 @@ canvas#glCanvas {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px 16px;
   gap: 4px;
   background: #1a1a1a;
@@ -997,11 +998,11 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
       </div>
       <div class="row" style="margin-top:4px;">
         <label data-i18n="resolution">Resolution</label>
-        <div class="btn-group" id="exportScaleGroup" style="flex:1">
-          <button class="btn active" data-scale="1">1×</button>
-          <button class="btn" data-scale="2">2×</button>
-          <button class="btn" data-scale="3">3×</button>
-          <button class="btn" data-scale="4">4×</button>
+        <div class="btn-group" id="exportScaleGroup" style="flex:1;gap:3px">
+          <button class="btn active" data-scale="1" style="padding:5px 0;font-size:11px">1×</button>
+          <button class="btn" data-scale="2" style="padding:5px 0;font-size:11px">2×</button>
+          <button class="btn" data-scale="3" style="padding:5px 0;font-size:11px">3×</button>
+          <button class="btn" data-scale="4" style="padding:5px 0;font-size:11px">4×</button>
         </div>
       </div>
       <div class="export-progress" id="exportProgress" style="display:none;">
