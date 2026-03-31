@@ -2120,27 +2120,19 @@ btnExport.onclick = () => {
 
   if (fmt === 'png' || fmt === 'jpg') {
     const mime = fmt === 'png' ? 'image/png' : 'image/jpeg';
+    if (source === '3d') renderThreeFrame();
+    else if (source === 'video') uploadAndRender(video);
+    else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
     if (exportScale === 1) {
-      if (source === '3d') renderThreeFrame();
-      else if (source === 'video') uploadAndRender(video);
-      else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
       canvas.toBlob(blob => download(blob, `ascii_render.${fmt}`), mime, 0.95);
     } else {
-      const origW = canvas.width, origH = canvas.height;
-      canvas.width = origW * exportScale;
-      canvas.height = origH * exportScale;
-      if (source === '3d') renderThreeFrame();
-      else if (source === 'video') uploadAndRender(video);
-      else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
-      else render();
-      canvas.toBlob(blob => {
-        download(blob, `ascii_render_${exportScale}x.${fmt}`);
-        canvas.width = origW;
-        canvas.height = origH;
-        if (source === '3d') renderThreeFrame();
-        else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
-        else render();
-      }, mime, 0.95);
+      const offscreen = document.createElement('canvas');
+      offscreen.width = canvas.width * exportScale;
+      offscreen.height = canvas.height * exportScale;
+      const ctx = offscreen.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(canvas, 0, 0, offscreen.width, offscreen.height);
+      offscreen.toBlob(blob => download(blob, `ascii_render_${exportScale}x.${fmt}`), mime, 0.95);
     }
     return;
   }
