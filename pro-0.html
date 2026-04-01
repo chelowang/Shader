@@ -128,6 +128,38 @@ canvas#glCanvas {
   line-height: 2;
 }
 
+/* Default image thumbnails */
+.default-images {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 3;
+}
+.default-thumb {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  transition: border-color 0.2s, transform 0.2s;
+  flex-shrink: 0;
+}
+.default-thumb:hover {
+  border-color: #d4a574;
+  transform: scale(1.06);
+}
+.default-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
 /* ===== Right Panel ===== */
 .panel {
   width: 280px;
@@ -564,6 +596,10 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
       <canvas id="glCanvas"></canvas>
       <div id="selectionOverlay" style="display:none;position:absolute;border:1.5px dashed #d4a574;box-sizing:border-box;pointer-events:none;"></div>
       <p class="hint" id="hint" data-i18n="hint">Import an image or video to start</p>
+      <div class="default-images" id="defaultImages">
+        <div class="default-thumb" data-src="default1.jpg"><img src="default1.jpg" draggable="false"></div>
+        <div class="default-thumb" data-src="default2.jpg"><img src="default2.jpg" draggable="false"></div>
+      </div>
     </div>
 
   </div>
@@ -2947,6 +2983,26 @@ btnExport.onclick = () => {
   if (source === '3d') renderThreeFrame();
   origExportClick();
 };
+
+// Default image thumbnails
+function loadImageFromURL(url) {
+  stopVideo();
+  const img = new Image();
+  img.onload = () => {
+    source = 'image'; currentImgSrc = img;
+    canvas.width = img.width; canvas.height = img.height;
+    document.getElementById('hint').style.display = 'none';
+    document.getElementById('defaultImages').style.display = 'none';
+    document.getElementById('exportSection').style.display = '';
+    document.getElementById('btnExport').style.display = '';
+    uploadCharAtlas(); uploadAndRender(img);
+    startFlickerLoop();
+  };
+  img.src = url;
+}
+document.getElementById('defaultImages').querySelectorAll('.default-thumb').forEach(el => {
+  el.addEventListener('click', () => loadImageFromURL(el.dataset.src));
+});
 
 // Drag and drop support
 canvasWrapper.addEventListener('dragover', (e) => {
