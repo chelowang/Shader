@@ -779,6 +779,38 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
 
     <div class="divider"></div>
 
+    <!-- 揭示动画 -->
+    <div class="panel-title" data-i18n="reveal">Reveal</div>
+    <div class="btn-group">
+      <button class="btn" id="btnReveal" data-i18n="playReveal">Play Reveal</button>
+      <button class="btn" id="btnRevealExport" style="flex:0;padding:7px 14px;" title="导出揭示动画">&#x21E9;</button>
+    </div>
+    <div id="revealExportProgress" style="display:none;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:6px;overflow:hidden;">
+      <div id="revealExportBar" style="height:100%;width:0%;background:#d4a574;transition:width 0.1s;"></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <label data-i18n="revealSpeed">Speed</label>
+      <input type="range" id="revealDuration" min="5" max="80" value="25">
+      <span class="val" id="revealDurationVal">2.5s</span>
+    </div>
+    <div class="row" style="margin-top:6px;align-items:center;gap:6px;">
+      <label data-i18n="revealAngle">Angle</label>
+      <input type="range" id="revealAngle" min="0" max="359" value="0" style="flex:1;">
+      <canvas id="revealAngleDial" width="28" height="28" style="cursor:pointer;flex-shrink:0;" title="Click to set angle"></canvas>
+    </div>
+    <div class="btn-group" id="revealAnglePresets" style="flex-wrap:wrap;gap:4px;margin-top:4px;">
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="0">→</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="45">↗</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="90">↑</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="135">↖</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="180">←</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="225">↙</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="270">↓</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="315">↘</button>
+    </div>
+
+    <div class="divider"></div>
+
     <!-- 后处理 -->
     <div class="panel-title" data-i18n="postProcessing">Post-Processing</div>
 
@@ -1143,6 +1175,8 @@ uniform vec3  u_pp_overlay;
 uniform float u_pp_overlayAmt;
 uniform float u_pp_bloom;
 uniform float u_charDither;
+uniform float u_revealProgress; // -1 = disabled, 0..1 = sweep
+uniform float u_revealAngle;    // radians
 
 vec3 sampleGradient(float t) {
   t = clamp(t, 0.0, 1.0);
@@ -1380,7 +1414,20 @@ void main() {
   bg = clamp(bg + grain, 0.0, 1.0);
 
   bool showChar = hash(cell) < u_density;
-  float fade = smoothstep(u_threshold, u_threshold + u_fadeRange, eBri);
+
+  float effectiveThreshold = u_threshold;
+  if (u_revealProgress >= 0.0) {
+    vec2 revDir = vec2(cos(u_revealAngle), -sin(u_revealAngle));
+    float proj = dot(cellUV - 0.5, revDir) * 0.5 + 0.5;
+    if (u_revealProgress < proj) {
+      gl_FragColor = vec4(applyPP(bg, suv), 1.0);
+      return;
+    }
+    float behind = u_revealProgress - proj;
+    effectiveThreshold = mix(1.0, u_threshold, smoothstep(0.0, 0.35, behind));
+  }
+
+  float fade = smoothstep(effectiveThreshold, effectiveThreshold + u_fadeRange, eBri);
   if (fade < 0.01 || !showChar) { gl_FragColor = vec4(applyPP(bg, suv), 1.0); return; }
 
   float cVal = pow(clamp(eBri + waveOff * 0.2, 0.0, 1.0), u_charGamma);
@@ -1458,6 +1505,7 @@ const loc = {};
  'u_charFrac','u_charSoft',
  'u_regionActive','u_regionRect','u_regionCharCount','u_regionBright','u_regionBold',
  'u_charDither',
+ 'u_revealProgress','u_revealAngle',
  'u_pp_vignette','u_pp_scanlines','u_pp_crt','u_pp_chromatic','u_pp_grain',
  'u_pp_glitch','u_pp_glitchSpeed','u_pp_pixelate','u_pp_halftone','u_pp_halftoneSize',
  'u_pp_dust','u_pp_overlay','u_pp_overlayAmt','u_pp_bloom'
@@ -1486,6 +1534,7 @@ gl.uniform1i(loc.u_charAtlas2, 2);
 
 // ============ State ============
 let source = null, animId = null, currentImgSrc = null;
+let revealThresholdOverride = null;
 const params = {
   cellSize: 16, charSpacing: 4, bgDarken: 0.8, threshold: 0.30, blur: 8,
   waveIntensity: 0.4, waveScale: 20, density: 0.7,
@@ -1535,7 +1584,7 @@ function render() {
   gl.uniform1f(loc.u_charDither, params.charDither);
   gl.uniform1f(loc.u_charCount, charCount);
   gl.uniform1f(loc.u_bgDarken, params.bgDarken);
-  gl.uniform1f(loc.u_threshold, params.threshold);
+  gl.uniform1f(loc.u_threshold, revealThresholdOverride !== null ? revealThresholdOverride : params.threshold);
   gl.uniform1f(loc.u_blur, params.blur);
   gl.uniform1f(loc.u_waveIntensity, params.waveIntensity);
   gl.uniform1f(loc.u_waveScale, params.waveScale);
@@ -1588,6 +1637,8 @@ function render() {
   gl.uniform3f(loc.u_pp_overlay, params.pp_overlay[0], params.pp_overlay[1], params.pp_overlay[2]);
   gl.uniform1f(loc.u_pp_overlayAmt, params.pp_overlayAmt);
   gl.uniform1f(loc.u_pp_bloom, params.pp_bloom);
+  gl.uniform1f(loc.u_revealProgress, params.revealProgress !== undefined ? params.revealProgress : -1.0);
+  gl.uniform1f(loc.u_revealAngle, (params.revealAngle || 0) * Math.PI / 180);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
@@ -1953,6 +2004,167 @@ function startFlickerLoop() {
   }
   flickerAnimId = requestAnimationFrame(loop);
 }
+
+// ============ Reveal Animation ============
+let revealAnimId = null;
+
+const btnReveal = document.getElementById('btnReveal');
+const revealDurationEl = document.getElementById('revealDuration');
+const revealDurationVal = document.getElementById('revealDurationVal');
+
+revealDurationEl.addEventListener('input', () => {
+  revealDurationVal.textContent = (revealDurationEl.value / 10).toFixed(1) + 's';
+});
+
+// Angle dial
+params.revealAngle = 0;
+const revealAngleSlider = document.getElementById('revealAngle');
+const revealAngleDial = document.getElementById('revealAngleDial');
+
+function drawAngleDial(deg) {
+  const ctx = revealAngleDial.getContext('2d');
+  const cx = 14, cy = 14, r = 11;
+  ctx.clearRect(0, 0, 28, 28);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  const rad = deg * Math.PI / 180;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(rad) * r, cy - Math.sin(rad) * r);
+  ctx.strokeStyle = '#d4a574';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx + Math.cos(rad) * r, cy - Math.sin(rad) * r, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#d4a574';
+  ctx.fill();
+}
+
+function setRevealAngle(deg) {
+  params.revealAngle = ((deg % 360) + 360) % 360;
+  revealAngleSlider.value = params.revealAngle;
+  drawAngleDial(params.revealAngle);
+}
+
+revealAngleSlider.addEventListener('input', () => setRevealAngle(Number(revealAngleSlider.value)));
+
+// Dial click/drag
+let dialDragging = false;
+function angleFromPointer(e) {
+  const rect = revealAngleDial.getBoundingClientRect();
+  const x = (e.clientX || e.touches[0].clientX) - rect.left - 14;
+  const y = (e.clientY || e.touches[0].clientY) - rect.top - 14;
+  return ((-Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+}
+revealAngleDial.addEventListener('mousedown', e => { dialDragging = true; setRevealAngle(angleFromPointer(e)); });
+document.addEventListener('mousemove', e => { if (dialDragging) setRevealAngle(angleFromPointer(e)); });
+document.addEventListener('mouseup', () => { dialDragging = false; });
+
+// Preset angle buttons
+document.getElementById('revealAnglePresets').querySelectorAll('[data-angle]').forEach(btn => {
+  btn.addEventListener('click', () => setRevealAngle(Number(btn.dataset.angle)));
+});
+
+setRevealAngle(0);
+
+function stopReveal() {
+  if (revealAnimId) { cancelAnimationFrame(revealAnimId); revealAnimId = null; }
+  params.revealProgress = -1.0;
+  render();
+  btnReveal.textContent = t('playReveal');
+  btnReveal.classList.remove('active');
+}
+
+function startReveal() {
+  stopReveal();
+  const duration = Number(revealDurationEl.value) / 10 * 1000;
+  const t0 = performance.now();
+  btnReveal.textContent = t('stopReveal');
+  btnReveal.classList.add('active');
+
+  function loop() {
+    const elapsed = performance.now() - t0;
+    const progress = Math.min(elapsed / duration, 1.0);
+    // ease-out cubic: sweep decelerates as it reaches the far edge
+    params.revealProgress = 1 - Math.pow(1 - progress, 3);
+
+    render();
+
+    if (progress < 1.0) {
+      revealAnimId = requestAnimationFrame(loop);
+    } else {
+      params.revealProgress = -1.0;
+      render();
+      revealAnimId = null;
+      btnReveal.textContent = t('playReveal');
+      btnReveal.classList.remove('active');
+    }
+  }
+  revealAnimId = requestAnimationFrame(loop);
+}
+
+btnReveal.addEventListener('click', () => {
+  if (revealAnimId) { stopReveal(); } else { startReveal(); }
+});
+
+// ---- Reveal Export ----
+const btnRevealExport = document.getElementById('btnRevealExport');
+const revealExportProgress = document.getElementById('revealExportProgress');
+const revealExportBar = document.getElementById('revealExportBar');
+let revealExportRecorder = null;
+
+btnRevealExport.addEventListener('click', () => {
+  if (revealExportRecorder) {
+    revealExportRecorder.stop();
+    return;
+  }
+  stopReveal();
+
+  const duration = Number(revealDurationEl.value) / 10 * 1000;
+  const targetThreshold = params.threshold;
+  const t0 = performance.now();
+
+  const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+    ? 'video/mp4;codecs=avc1'
+    : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9' : 'video/webm';
+  const stream = canvas.captureStream(30);
+  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = () => {
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    download(new Blob(chunks, { type: mimeType }), `ascii_reveal.${ext}`);
+    revealExportRecorder = null;
+    btnRevealExport.textContent = '\u21E9';
+    revealExportProgress.style.display = 'none';
+    revealExportBar.style.width = '0%';
+    revealThresholdOverride = null;
+  };
+  recorder.start();
+  revealExportRecorder = recorder;
+  btnRevealExport.textContent = '■';
+  revealExportProgress.style.display = '';
+  revealExportBar.style.width = '0%';
+
+  function loop() {
+    const elapsed = performance.now() - t0;
+    const progress = Math.min(elapsed / duration, 1.0);
+    params.revealProgress = 1 - Math.pow(1 - progress, 3);
+    render();
+    revealExportBar.style.width = (progress * 100) + '%';
+    if (progress < 1.0) {
+      requestAnimationFrame(loop);
+    } else {
+      params.revealProgress = -1.0;
+      recorder.stop();
+    }
+  }
+  requestAnimationFrame(loop);
+});
 
 // ============ Mono Mode ============
 const btnMono = document.getElementById('btnMono');
@@ -2755,6 +2967,18 @@ canvasWrapper.addEventListener('drop', (e) => {
   else if (file.type.startsWith('video/')) loadVideoFile(file);
 });
 
+// ============ Paste to import ============
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) { loadImageFile(file); break; }
+    }
+  }
+});
+
 // ============ i18n ============
 const i18n = {
   en: {
@@ -2779,6 +3003,7 @@ const i18n = {
     blur: 'Blur',
     flicker: 'Flicker', enableFlicker: 'Enable Flicker', disableFlicker: 'Disable Flicker',
     speed: 'Speed', random: 'Random',
+    reveal: 'Reveal', playReveal: 'Play Reveal', stopReveal: 'Stop', revealSpeed: 'Speed', revealAngle: 'Angle',
     wave: 'Wave', scale: 'Scale', colorShift: 'Color Shift',
     '3dModel': '3D Model', '3dFormats': 'GLB / GLTF / OBJ / STL supported',
     rotation: 'Rotation', xAxis: 'X Axis', yAxis: 'Y Axis', zAxis: 'Z Axis',
@@ -2823,6 +3048,7 @@ const i18n = {
     blur: '模糊',
     flicker: '闪烁', enableFlicker: '启用闪烁', disableFlicker: '禁用闪烁',
     speed: '速度', random: '随机',
+    reveal: '揭示动画', playReveal: '播放揭示', stopReveal: '停止', revealSpeed: '速度', revealAngle: '角度',
     wave: '波浪', scale: '缩放', colorShift: '色彩偏移',
     '3dModel': '3D 模型', '3dFormats': '支持 GLB / GLTF / OBJ / STL 格式',
     rotation: '旋转', xAxis: 'X 轴', yAxis: 'Y 轴', zAxis: 'Z 轴',
@@ -2901,6 +3127,8 @@ function toggleLang() {
   currentLang = currentLang === 'en' ? 'zh' : 'en';
   applyLang();
 }
+
+applyLang();
 </script>
 </body>
 </html>
