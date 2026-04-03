@@ -1382,14 +1382,20 @@ void main() {
   float brightness = dot(cellColor, vec3(0.299, 0.587, 0.114));
 
   float edgeRaw = clamp(edgeDetect(cellUV) * 0.25, 0.0, 1.0);
+  // Boost edge detection in bright areas where subtle edges are lost
+  float brightBoost = smoothstep(0.55, 0.85, brightness) * 3.0;
+  float boostedEdgeRaw = clamp(edgeRaw + edgeRaw * brightBoost, 0.0, 1.0);
   // Edge Min/Width: only edges above threshold contribute to brightness
-  float edgeGate = smoothstep(u_edgeThreshold, u_edgeThreshold + max(u_edgeFade, 0.01), edgeRaw);
+  float edgeGate = smoothstep(u_edgeThreshold, u_edgeThreshold + max(u_edgeFade, 0.01), boostedEdgeRaw);
   float edge = edgeGate * u_edgeBoost * 1.5;
   vec2 wc = cell / u_waveScale;
   float wave = fbm(wc) * 2.0 - 1.0;
   float waveOff = wave * u_waveIntensity;
 
-  float eBri = clamp(brightness + waveOff * 0.3 + edge, 0.0, 1.0);
+  // Enhance local contrast in bright areas
+  float localContrast = smoothstep(0.6, 0.9, brightness);
+  float adjustedBri = mix(brightness, brightness * brightness, localContrast * 0.5);
+  float eBri = clamp(adjustedBri + waveOff * 0.3 + edge, 0.0, 1.0);
   if (u_invert > 0.5) eBri = 1.0 - eBri;
 
   float flickerVal = 1.0;
