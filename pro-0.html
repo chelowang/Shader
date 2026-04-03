@@ -2989,13 +2989,18 @@ function loadImageFromURL(url) {
   stopVideo();
   const img = new Image();
   img.onload = () => {
-    source = 'image'; currentImgSrc = img;
-    canvas.width = img.width; canvas.height = img.height;
+    // Draw to offscreen 2D canvas first to avoid WebGL cross-origin security errors with file:// URLs
+    const offscreen = document.createElement('canvas');
+    offscreen.width = img.naturalWidth;
+    offscreen.height = img.naturalHeight;
+    offscreen.getContext('2d').drawImage(img, 0, 0);
+    source = 'image'; currentImgSrc = offscreen;
+    canvas.width = offscreen.width; canvas.height = offscreen.height;
     document.getElementById('hint').style.display = 'none';
     document.getElementById('defaultImages').style.display = 'none';
     document.getElementById('exportSection').style.display = '';
     document.getElementById('btnExport').style.display = '';
-    uploadCharAtlas(); uploadAndRender(img);
+    uploadCharAtlas(); uploadAndRender(offscreen);
     startFlickerLoop();
   };
   img.src = url;
