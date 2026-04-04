@@ -518,21 +518,6 @@ canvas#glCanvas {
 
 video { display: none; }
 
-/* 3D Controls */
-#threeSection { display: none; }
-.three-info {
-  font-size: 10px;
-  color: #52525b;
-  padding: 2px 4px;
-  margin-top: 2px;
-  line-height: 1.4;
-}
-.preset-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 4px;
-}
-.preset-grid .btn { font-size: 10px; padding: 6px 0; }
 select.select-input {
   width: 100%;
   background: transparent;
@@ -568,14 +553,6 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
   color: #e8e0d4;
 }
 </style>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
-  }
-}
-</script>
 </head>
 <body>
 
@@ -610,7 +587,6 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
     <div class="btn-group">
       <button class="btn" id="btnImage" data-i18n="image">Image</button>
       <button class="btn" id="btnVideo" data-i18n="video">Video</button>
-      <button class="btn" id="btn3D">3D</button>
     </div>
 
     <div class="divider"></div>
@@ -934,103 +910,6 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
       </div>
     </div>
 
-    <div id="threeSection">
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="3dModel">3D Model</div>
-      <div class="three-info" id="threeInfo" data-i18n="3dFormats">GLB / GLTF / OBJ / STL supported</div>
-
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="rotation">Rotation</div>
-      <div class="row">
-        <label data-i18n="xAxis">X Axis</label>
-        <input type="range" id="rotX" min="0" max="360" value="0">
-        <span class="val" id="rotXVal">0°</span>
-      </div>
-      <div class="row">
-        <label data-i18n="yAxis">Y Axis</label>
-        <input type="range" id="rotY" min="0" max="360" value="0">
-        <span class="val" id="rotYVal">0°</span>
-      </div>
-      <div class="row">
-        <label data-i18n="zAxis">Z Axis</label>
-        <input type="range" id="rotZ" min="0" max="360" value="0">
-        <span class="val" id="rotZVal">0°</span>
-      </div>
-      <button class="btn" id="btnAutoRotate" data-i18n="autoRotate">Auto Rotate</button>
-      <div id="autoRotateOptions" style="display:none;">
-        <div class="row" style="margin-top:4px;">
-          <label data-i18n="speed">Speed</label>
-          <input type="range" id="autoRotateSpeed" min="1" max="100" value="30">
-          <span class="val" id="autoRotateSpeedVal">30</span>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="scale">Scale</div>
-      <div class="row">
-        <label data-i18n="size">Size</label>
-        <input type="range" id="modelScale" min="10" max="300" value="100">
-        <span class="val" id="modelScaleVal">100%</span>
-      </div>
-
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="lighting">Lighting</div>
-      <div class="row">
-        <label data-i18n="ambient">Ambient</label>
-        <input type="range" id="ambientIntensity" min="0" max="200" value="60">
-        <span class="val" id="ambientIntensityVal">60</span>
-      </div>
-      <div class="row">
-        <label data-i18n="mainLight">Main Light</label>
-        <input type="range" id="dirIntensity" min="0" max="300" value="120">
-        <span class="val" id="dirIntensityVal">120</span>
-      </div>
-      <div class="row">
-        <label data-i18n="angle">Angle</label>
-        <input type="range" id="lightAngle" min="0" max="360" value="45">
-        <span class="val" id="lightAngleVal">45°</span>
-      </div>
-      <div class="row">
-        <label data-i18n="color">Color</label>
-        <input type="color" id="lightColor" value="#ffffff" class="color-swatch">
-      </div>
-
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="material">Material</div>
-      <button class="btn" id="btnWireframe" data-i18n="wireframe">Wireframe</button>
-      <div class="row" style="margin-top:4px;">
-        <label data-i18n="metalness">Metalness</label>
-        <input type="range" id="metalness" min="0" max="100" value="0">
-        <span class="val" id="metalnessVal">0</span>
-      </div>
-      <div class="row">
-        <label data-i18n="roughness">Roughness</label>
-        <input type="range" id="roughness" min="0" max="100" value="70">
-        <span class="val" id="roughnessVal">70</span>
-      </div>
-      <div class="row">
-        <label data-i18n="color">Color</label>
-        <input type="color" id="modelColor" value="#aaaaaa" class="color-swatch">
-      </div>
-
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="3dBackground">3D Background</div>
-      <div class="row">
-        <label data-i18n="color">Color</label>
-        <input type="color" id="threeBgColor" value="#1a1a1a" class="color-swatch">
-      </div>
-
-      <div class="divider"></div>
-      <div class="panel-title" data-i18n="cameraPresets">Camera Presets</div>
-      <div class="preset-grid">
-        <button class="btn" data-view="front" data-i18n="front">Front</button>
-        <button class="btn" data-view="back" data-i18n="back">Back</button>
-        <button class="btn" data-view="left" data-i18n="left">Left</button>
-        <button class="btn" data-view="right" data-i18n="right">Right</button>
-        <button class="btn" data-view="top" data-i18n="top">Top</button>
-        <button class="btn" data-view="iso" data-i18n="iso">Iso</button>
-      </div>
-    </div>
 
     <div id="exportSection" style="display:none;">
       <div class="divider"></div>
@@ -1087,11 +966,9 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
 
 <input type="file" id="fileImage" accept="image/*" hidden>
 <input type="file" id="fileVideo" accept="video/*" hidden>
-<input type="file" id="file3D" accept=".glb,.gltf,.obj,.stl,.fbx" hidden>
 <video id="video" loop muted playsinline></video>
 <canvas id="charCanvas" style="display:none;"></canvas>
 <canvas id="regionCharCanvas" style="display:none;"></canvas>
-<canvas id="threeOffscreen" style="display:none;"></canvas>
 
 <script>
 function updateFPS() {}
@@ -1693,8 +1570,7 @@ function uploadAndRender(src) {
 
 // Re-render current source (used by controls)
 function rerender() {
-  if (source === '3d' && typeof renderThreeFrame === 'function') renderThreeFrame();
-  else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
   else if (source === 'image') render();
 }
 
@@ -1705,7 +1581,6 @@ const video = document.getElementById('video');
 
 document.getElementById('btnImage').onclick = () => fileImage.click();
 document.getElementById('btnVideo').onclick = () => fileVideo.click();
-document.getElementById('btn3D').onclick = () => document.getElementById('file3D').click();
 
 fileImage.addEventListener('change', e => {
   const file = e.target.files[0]; if (!file) return;
@@ -2033,14 +1908,13 @@ bindSlider('flickerRandom', 'flickerRandomVal', v => { params.flickerRandom = v 
 let flickerAnimId = null;
 function startFlickerLoop() {
   if (flickerAnimId) return;
-  if (params.flickerSpeed <= 0 || (source !== 'image' && source !== '3d')) return;
+  if (params.flickerSpeed <= 0 || (source !== 'image')) return;
   function loop() {
-    if (params.flickerSpeed <= 0 || (source !== 'image' && source !== '3d')) {
+    if (params.flickerSpeed <= 0 || (source !== 'image')) {
       flickerAnimId = null;
       return;
     }
-    if (source === '3d') renderThreeFrame();
-    else if (currentImgSrc) uploadAndRender(currentImgSrc);
+    if (currentImgSrc) uploadAndRender(currentImgSrc);
     else render();
     flickerAnimId = requestAnimationFrame(loop);
   }
@@ -2377,8 +2251,7 @@ btnExport.onclick = () => {
 
   if (fmt === 'png' || fmt === 'jpg') {
     const mime = fmt === 'png' ? 'image/png' : 'image/jpeg';
-    if (source === '3d') renderThreeFrame();
-    else if (source === 'video') uploadAndRender(video);
+    if (source === 'video') uploadAndRender(video);
     else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
     if (exportScale === 1) {
       canvas.toBlob(blob => download(blob, `ascii_render.${fmt}`), mime, 0.95);
@@ -2435,8 +2308,7 @@ btnExport.onclick = () => {
         encodeGIF(frames, canvas.width, canvas.height, interval, fps);
         return;
       }
-      if (source === '3d') renderThreeFrame();
-      else if (source === 'video') uploadAndRender(video);
+      if (source === 'video') uploadAndRender(video);
       else if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
       const pixels = new Uint8Array(canvas.width * canvas.height * 4);
       gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
@@ -2631,365 +2503,6 @@ function lzwEncode(out, data, minCode) {
   out.push(0);
 }
 
-// ============ 3D Model Support ============
-let threeReady = false;
-let THREE, threeScene, threeCamera, threeRenderer, threeControls;
-let threeModel = null, threeAutoRotate = false, threeWireframe = false;
-let threeModelMaterials = [], threeBaseScale = 1;
-const threeCanvas = document.getElementById('threeOffscreen');
-
-async function initThree() {
-  if (threeReady) return;
-
-  THREE = await import('three');
-  const { OrbitControls } = await import('three/addons/controls/OrbitControls.js');
-
-  const area = document.querySelector('.canvas-wrapper');
-  const w = area.clientWidth || 800;
-  const h = area.clientHeight || 600;
-  threeCanvas.width = w;
-  threeCanvas.height = h;
-
-  threeScene = new THREE.Scene();
-  threeScene.background = new THREE.Color('#1a1a1a');
-
-  threeCamera = new THREE.PerspectiveCamera(45, w / h, 0.01, 1000);
-  threeCamera.position.set(3, 2, 5);
-
-  threeRenderer = new THREE.WebGLRenderer({
-    canvas: threeCanvas,
-    antialias: true,
-    preserveDrawingBuffer: true,
-    alpha: true
-  });
-  threeRenderer.setSize(w, h);
-  threeRenderer.setPixelRatio(1);
-  threeRenderer.outputColorSpace = THREE.SRGBColorSpace;
-  threeRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-  threeRenderer.toneMappingExposure = 1.0;
-  threeRenderer.shadowMap.enabled = true;
-
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  ambient.name = 'ambient';
-  threeScene.add(ambient);
-
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  dirLight.name = 'directional';
-  dirLight.position.set(5, 8, 5);
-  dirLight.castShadow = true;
-  threeScene.add(dirLight);
-
-  const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
-  fillLight.position.set(-3, 2, -3);
-  threeScene.add(fillLight);
-
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
-  threeScene.add(hemiLight);
-
-  const grid = new THREE.GridHelper(10, 20, 0x333333, 0x222222);
-  grid.name = 'grid';
-  threeScene.add(grid);
-
-  threeControls = new OrbitControls(threeCamera, document.querySelector('.canvas-wrapper'));
-  threeControls.enableDamping = true;
-  threeControls.dampingFactor = 0.08;
-  threeControls.addEventListener('change', () => {
-    if (source === '3d') renderThreeFrame();
-  });
-
-  threeReady = true;
-}
-
-function renderThreeFrame() {
-  if (!threeReady || !threeModel) return;
-  threeControls.update();
-  threeRenderer.render(threeScene, threeCamera);
-  canvas.width = threeCanvas.width;
-  canvas.height = threeCanvas.height;
-  uploadCharAtlas();
-  uploadAndRender(threeCanvas);
-}
-
-let threeAnimId = null;
-function threeLoop() {
-  if (source !== '3d') { threeAnimId = null; return; }
-  if (threeAutoRotate && threeModel) {
-    const speed = parseFloat(document.getElementById('autoRotateSpeed').value) / 1000;
-    threeModel.rotation.y += speed;
-    const deg = ((threeModel.rotation.y * 180 / Math.PI) % 360 + 360) % 360;
-    document.getElementById('rotY').value = Math.round(deg);
-    document.getElementById('rotYVal').textContent = Math.round(deg) + '°';
-  }
-  renderThreeFrame();
-  threeAnimId = requestAnimationFrame(threeLoop);
-}
-
-async function load3DModel(file) {
-  await initThree();
-
-  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
-  const { OBJLoader } = await import('three/addons/loaders/OBJLoader.js');
-  const { STLLoader } = await import('three/addons/loaders/STLLoader.js');
-
-  const ext = file.name.split('.').pop().toLowerCase();
-  const url = URL.createObjectURL(file);
-
-  if (threeModel) {
-    threeScene.remove(threeModel);
-    threeModel = null;
-    threeModelMaterials = [];
-  }
-
-  document.getElementById('threeInfo').textContent = t('loading') + file.name + '...';
-
-  const onLoad = (object) => {
-    let model;
-    if (object.scene) {
-      model = object.scene;
-    } else if (object.isBufferGeometry) {
-      const material = new THREE.MeshStandardMaterial({
-        color: document.getElementById('modelColor').value,
-        metalness: parseFloat(document.getElementById('metalness').value) / 100,
-        roughness: parseFloat(document.getElementById('roughness').value) / 100
-      });
-      model = new THREE.Mesh(object, material);
-    } else {
-      model = object;
-    }
-
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z);
-    threeBaseScale = 3 / maxDim;
-    model.scale.setScalar(threeBaseScale);
-    model.position.sub(center.multiplyScalar(threeBaseScale));
-
-    threeModelMaterials = [];
-    model.traverse((child) => {
-      if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        if (child.material) {
-          const mats = Array.isArray(child.material) ? child.material : [child.material];
-          threeModelMaterials.push(...mats);
-        }
-        if (!child.material || (child.material.color && child.material.color.getHexString() === '000000' && ext === 'obj')) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: document.getElementById('modelColor').value,
-            metalness: parseFloat(document.getElementById('metalness').value) / 100,
-            roughness: parseFloat(document.getElementById('roughness').value) / 100
-          });
-          threeModelMaterials.push(child.material);
-        }
-      }
-    });
-
-    threeModel = model;
-    threeScene.add(model);
-
-    const dist = maxDim * threeBaseScale * 2.5;
-    threeCamera.position.set(dist * 0.7, dist * 0.5, dist * 0.7);
-    threeControls.target.set(0, 0, 0);
-    threeControls.update();
-
-    document.getElementById('threeSection').style.display = '';
-    document.getElementById('exportSection').style.display = '';
-    document.getElementById('btnExport').style.display = '';
-
-    let vertexCount = 0, faceCount = 0;
-    model.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const geo = child.geometry;
-        vertexCount += geo.attributes.position ? geo.attributes.position.count : 0;
-        faceCount += geo.index ? geo.index.count / 3 : (geo.attributes.position ? geo.attributes.position.count / 3 : 0);
-      }
-    });
-    document.getElementById('threeInfo').textContent =
-      `${file.name} | ${(vertexCount/1000).toFixed(1)}k verts | ${(faceCount/1000).toFixed(1)}k faces`;
-
-    document.getElementById('rotX').value = 0;
-    document.getElementById('rotY').value = 0;
-    document.getElementById('rotZ').value = 0;
-    document.getElementById('rotXVal').textContent = '0°';
-    document.getElementById('rotYVal').textContent = '0°';
-    document.getElementById('rotZVal').textContent = '0°';
-    document.getElementById('modelScale').value = 100;
-    document.getElementById('modelScaleVal').textContent = '100%';
-
-    source = '3d';
-    stopVideo();
-    document.getElementById('hint').style.display = 'none';
-    if (!threeAnimId) threeLoop();
-    URL.revokeObjectURL(url);
-  };
-
-  const onError = (err) => {
-    console.error('Model load error:', err);
-    document.getElementById('threeInfo').textContent = t('loadFailed') + (err.message || 'Unknown error');
-    URL.revokeObjectURL(url);
-  };
-
-  switch (ext) {
-    case 'glb': case 'gltf':
-      new GLTFLoader().load(url, onLoad, undefined, onError);
-      break;
-    case 'obj':
-      new OBJLoader().load(url, onLoad, undefined, onError);
-      break;
-    case 'stl':
-      new STLLoader().load(url, (geometry) => onLoad(geometry), undefined, onError);
-      break;
-    default:
-      document.getElementById('threeInfo').textContent = t('unsupported');
-  }
-}
-
-// 3D file input
-document.getElementById('file3D').addEventListener('change', e => {
-  if (e.target.files.length > 0) load3DModel(e.target.files[0]);
-});
-
-// 3D rotation sliders
-['rotX', 'rotY', 'rotZ'].forEach(id => {
-  document.getElementById(id).addEventListener('input', function() {
-    document.getElementById(id + 'Val').textContent = this.value + '°';
-    if (threeModel) {
-      const rad = parseFloat(this.value) * Math.PI / 180;
-      if (id === 'rotX') threeModel.rotation.x = rad;
-      if (id === 'rotY') threeModel.rotation.y = rad;
-      if (id === 'rotZ') threeModel.rotation.z = rad;
-      if (source === '3d' && !threeAutoRotate) renderThreeFrame();
-    }
-  });
-});
-
-// Auto rotate
-document.getElementById('btnAutoRotate').addEventListener('click', function() {
-  threeAutoRotate = !threeAutoRotate;
-  this.classList.toggle('active', threeAutoRotate);
-  this.dataset.i18n = threeAutoRotate ? 'stopRotate' : 'autoRotate';
-  this.textContent = t(this.dataset.i18n);
-  document.getElementById('autoRotateOptions').style.display = threeAutoRotate ? '' : 'none';
-  if (threeAutoRotate && source === '3d' && !threeAnimId) threeLoop();
-});
-
-document.getElementById('autoRotateSpeed').addEventListener('input', function() {
-  document.getElementById('autoRotateSpeedVal').textContent = this.value;
-});
-
-// Scale
-document.getElementById('modelScale').addEventListener('input', function() {
-  document.getElementById('modelScaleVal').textContent = this.value + '%';
-  if (threeModel) {
-    threeModel.scale.setScalar(threeBaseScale * parseFloat(this.value) / 100);
-    if (source === '3d') renderThreeFrame();
-  }
-});
-
-// Lighting controls
-document.getElementById('ambientIntensity').addEventListener('input', function() {
-  document.getElementById('ambientIntensityVal').textContent = this.value;
-  if (threeReady) {
-    const l = threeScene.getObjectByName('ambient');
-    if (l) l.intensity = parseFloat(this.value) / 100;
-    if (source === '3d') renderThreeFrame();
-  }
-});
-document.getElementById('dirIntensity').addEventListener('input', function() {
-  document.getElementById('dirIntensityVal').textContent = this.value;
-  if (threeReady) {
-    const l = threeScene.getObjectByName('directional');
-    if (l) l.intensity = parseFloat(this.value) / 100;
-    if (source === '3d') renderThreeFrame();
-  }
-});
-document.getElementById('lightAngle').addEventListener('input', function() {
-  document.getElementById('lightAngleVal').textContent = this.value + '°';
-  if (threeReady) {
-    const l = threeScene.getObjectByName('directional');
-    if (l) {
-      const a = parseFloat(this.value) * Math.PI / 180;
-      l.position.set(Math.cos(a) * 8, 8, Math.sin(a) * 8);
-    }
-    if (source === '3d') renderThreeFrame();
-  }
-});
-document.getElementById('lightColor').addEventListener('input', function() {
-  if (threeReady) {
-    const c = new THREE.Color(this.value);
-    const amb = threeScene.getObjectByName('ambient');
-    const dir = threeScene.getObjectByName('directional');
-    if (amb) amb.color = c;
-    if (dir) dir.color = c;
-    if (source === '3d') renderThreeFrame();
-  }
-});
-
-// Wireframe
-document.getElementById('btnWireframe').addEventListener('click', function() {
-  threeWireframe = !threeWireframe;
-  this.classList.toggle('active', threeWireframe);
-  this.dataset.i18n = threeWireframe ? 'solid' : 'wireframe';
-  this.textContent = t(this.dataset.i18n);
-  threeModelMaterials.forEach(m => { m.wireframe = threeWireframe; });
-  if (source === '3d') renderThreeFrame();
-});
-
-// Material
-document.getElementById('metalness').addEventListener('input', function() {
-  document.getElementById('metalnessVal').textContent = this.value;
-  threeModelMaterials.forEach(m => { if (m.metalness !== undefined) m.metalness = parseFloat(this.value) / 100; });
-  if (source === '3d') renderThreeFrame();
-});
-document.getElementById('roughness').addEventListener('input', function() {
-  document.getElementById('roughnessVal').textContent = this.value;
-  threeModelMaterials.forEach(m => { if (m.roughness !== undefined) m.roughness = parseFloat(this.value) / 100; });
-  if (source === '3d') renderThreeFrame();
-});
-document.getElementById('modelColor').addEventListener('input', function() {
-  if (threeReady) {
-    const c = new THREE.Color(this.value);
-    threeModelMaterials.forEach(m => { if (m.color) m.color = c; });
-    if (source === '3d') renderThreeFrame();
-  }
-});
-
-// 3D Background
-document.getElementById('threeBgColor').addEventListener('input', function() {
-  if (threeReady) {
-    threeScene.background = new THREE.Color(this.value);
-    if (source === '3d') renderThreeFrame();
-  }
-});
-
-// Camera presets
-document.querySelectorAll('[data-view]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if (!threeModel || !threeReady) return;
-    const d = 5;
-    const views = {
-      front: [0, 0, d], back: [0, 0, -d],
-      left: [-d, 0, 0], right: [d, 0, 0],
-      top: [0, d, 0.01], iso: [d*0.7, d*0.5, d*0.7]
-    };
-    const pos = views[btn.dataset.view];
-    if (pos) {
-      threeCamera.position.set(pos[0], pos[1], pos[2]);
-      threeControls.target.set(0, 0, 0);
-      threeControls.update();
-      if (source === '3d') renderThreeFrame();
-    }
-  });
-});
-
-// Override export click to handle 3D source
-const origExportClick = btnExport.onclick;
-btnExport.onclick = () => {
-  if (source === '3d') renderThreeFrame();
-  origExportClick();
-};
-
 // Default image thumbnails
 function loadImageFromURL(url) {
   stopVideo();
@@ -3028,9 +2541,7 @@ canvasWrapper.addEventListener('drop', (e) => {
   canvasWrapper.style.outline = '';
   const file = e.dataTransfer.files[0];
   if (!file) return;
-  const ext = file.name.split('.').pop().toLowerCase();
-  if (['glb', 'gltf', 'obj', 'stl', 'fbx'].includes(ext)) load3DModel(file);
-  else if (file.type.startsWith('image/')) loadImageFile(file);
+  if (file.type.startsWith('image/')) loadImageFile(file);
   else if (file.type.startsWith('video/')) loadVideoFile(file);
 });
 
@@ -3072,15 +2583,6 @@ const i18n = {
     speed: 'Speed', random: 'Random',
     reveal: 'Reveal', playReveal: 'Play Reveal', stopReveal: 'Stop', revealSpeed: 'Speed', revealAngle: 'Angle',
     wave: 'Wave', scale: 'Scale', colorShift: 'Color Shift',
-    '3dModel': '3D Model', '3dFormats': 'GLB / GLTF / OBJ / STL supported',
-    rotation: 'Rotation', xAxis: 'X Axis', yAxis: 'Y Axis', zAxis: 'Z Axis',
-    autoRotate: 'Auto Rotate', stopRotate: 'Stop Rotate',
-    lighting: 'Lighting', ambient: 'Ambient', mainLight: 'Main Light', angle: 'Angle',
-    material: 'Material', wireframe: 'Wireframe', solid: 'Solid',
-    metalness: 'Metalness', roughness: 'Roughness',
-    '3dBackground': '3D Background',
-    cameraPresets: 'Camera Presets',
-    front: 'Front', back: 'Back', left: 'Left', right: 'Right', top: 'Top', iso: 'Iso',
     download: 'Download', stopRecording: 'Stop Recording',
     fullscreen: 'Fullscreen \u2192',
     loading: 'Loading: ', loadFailed: 'Load failed: ',
@@ -3117,15 +2619,6 @@ const i18n = {
     speed: '速度', random: '随机',
     reveal: '揭示动画', playReveal: '播放揭示', stopReveal: '停止', revealSpeed: '速度', revealAngle: '角度',
     wave: '波浪', scale: '缩放', colorShift: '色彩偏移',
-    '3dModel': '3D 模型', '3dFormats': '支持 GLB / GLTF / OBJ / STL 格式',
-    rotation: '旋转', xAxis: 'X 轴', yAxis: 'Y 轴', zAxis: 'Z 轴',
-    autoRotate: '自动旋转', stopRotate: '停止旋转',
-    lighting: '光照', ambient: '环境光', mainLight: '主光源', angle: '角度',
-    material: '材质', wireframe: '线框', solid: '实体',
-    metalness: '金属度', roughness: '粗糙度',
-    '3dBackground': '3D 背景',
-    cameraPresets: '相机预设',
-    front: '正面', back: '背面', left: '左侧', right: '右侧', top: '顶部', iso: '等轴',
     download: '下载', stopRecording: '停止录制',
     fullscreen: '全屏 \u2192',
     loading: '加载中: ', loadFailed: '加载失败: ',
