@@ -1609,6 +1609,15 @@ function videoLoop() {
 }
 
 // ============ Drag & Drop ============
+function saveImageToStorage(imgEl) {
+  try {
+    const c = document.createElement('canvas');
+    c.width = imgEl.naturalWidth || imgEl.width;
+    c.height = imgEl.naturalHeight || imgEl.height;
+    c.getContext('2d').drawImage(imgEl, 0, 0);
+    localStorage.setItem('shader_shared_image', c.toDataURL('image/png'));
+  } catch(e) {}
+}
 function loadImageFile(file) {
   stopVideo();
   const img = new Image();
@@ -1620,6 +1629,7 @@ function loadImageFile(file) {
     document.getElementById('btnExport').style.display = '';
     uploadCharAtlas(); uploadAndRender(img);
     startFlickerLoop();
+    saveImageToStorage(img);
   };
   img.src = URL.createObjectURL(file);
 }
@@ -2525,6 +2535,7 @@ function loadImageFromURL(url) {
     document.getElementById('btnExport').style.display = '';
     uploadCharAtlas(); uploadAndRender(offscreen);
     startFlickerLoop();
+    saveImageToStorage(offscreen);
   };
   img.src = url;
 }
@@ -2560,6 +2571,24 @@ document.addEventListener('paste', (e) => {
     }
   }
 });
+
+// ============ Restore shared image from localStorage ============
+(function() {
+  const dataURL = localStorage.getItem('shader_shared_image');
+  if (!dataURL) return;
+  const img = new Image();
+  img.onload = () => {
+    source = 'image'; currentImgSrc = img;
+    canvas.width = img.width; canvas.height = img.height;
+    document.getElementById('hint').style.display = 'none';
+    document.getElementById('defaultImages').style.display = 'none';
+    document.getElementById('exportSection').style.display = '';
+    document.getElementById('btnExport').style.display = '';
+    uploadCharAtlas(); uploadAndRender(img);
+    startFlickerLoop();
+  };
+  img.src = dataURL;
+})();
 
 // ============ i18n ============
 const i18n = {
