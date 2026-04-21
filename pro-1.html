@@ -243,6 +243,40 @@ canvas#glCanvas {
   gap: 6px;
 }
 .btn-group .btn { flex: 1; }
+.mode-switch {
+  gap: 32px;
+  margin-bottom: 8px;
+}
+.mode-switch .btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 0 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  text-decoration: none;
+}
+.mode-switch .btn:hover {
+  border-color: transparent;
+}
+.mode-switch .btn.active {
+  background: transparent;
+  border-color: transparent;
+  color: #e8e0d4;
+}
+.mode-switch .btn.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 34px;
+  height: 2px;
+  border-radius: 2px;
+  background: #d4a574;
+  transform: translateX(-50%);
+}
 
 /* Divider */
 .divider {
@@ -430,9 +464,9 @@ video { display: none; }
   <!-- Right Panel -->
   <div class="panel">
     <div class="panel-title" data-i18n="import">Import</div>
-    <div class="btn-group" style="margin-bottom:8px;">
-      <a class="btn" href="pro-0.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;border:none;background:none;">ASCII</a>
-      <a class="btn active" href="pro-1.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;border:none;background:none;">Halftone</a>
+    <div class="btn-group mode-switch">
+      <a class="btn" href="pro-0.html">ASCII</a>
+      <a class="btn active" href="pro-1.html">Halftone</a>
     </div>
     <div class="btn-group">
       <button class="btn" id="btnImage" data-i18n="image">Image</button>
