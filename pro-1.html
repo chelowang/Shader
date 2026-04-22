@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/gif" href="favicon.gif">
 <title>Halftone Dot Renderer - WebGL</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
@@ -137,6 +138,9 @@ canvas#glCanvas {
   padding: 20px 16px;
   gap: 4px;
   background: #1a1a1a;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  will-change: scroll-position;
 }
 .panel::-webkit-scrollbar { width: 5px; }
 .panel::-webkit-scrollbar-track { background: transparent; }
@@ -243,40 +247,6 @@ canvas#glCanvas {
   gap: 6px;
 }
 .btn-group .btn { flex: 1; }
-.mode-switch {
-  gap: 32px;
-  margin-bottom: 8px;
-}
-.mode-switch .btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 0 10px;
-  border: 0;
-  background: transparent;
-  border-radius: 0;
-  text-decoration: none;
-}
-.mode-switch .btn:hover {
-  border-color: transparent;
-}
-.mode-switch .btn.active {
-  background: transparent;
-  border-color: transparent;
-  color: #e8e0d4;
-}
-.mode-switch .btn.active::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 2px;
-  width: 34px;
-  height: 2px;
-  border-radius: 2px;
-  background: #d4a574;
-  transform: translateX(-50%);
-}
 
 /* Divider */
 .divider {
@@ -464,9 +434,9 @@ video { display: none; }
   <!-- Right Panel -->
   <div class="panel">
     <div class="panel-title" data-i18n="import">Import</div>
-    <div class="btn-group mode-switch">
-      <a class="btn" href="pro-0.html">ASCII</a>
-      <a class="btn active" href="pro-1.html">Halftone</a>
+    <div class="btn-group" style="margin-bottom:8px;">
+      <a class="btn" href="pro-0.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;border:none;background:none;">ASCII</a>
+      <a class="btn active" href="pro-1.html" style="text-decoration:none;display:flex;align-items:center;justify-content:center;border:none;background:none;">Halftone</a>
     </div>
     <div class="btn-group">
       <button class="btn" id="btnImage" data-i18n="image">Image</button>
@@ -562,6 +532,38 @@ video { display: none; }
         <input type="range" id="colorMix" min="0" max="100" value="100">
         <span class="val" id="colorMixVal">100</span>
       </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Reveal -->
+    <div class="panel-title" data-i18n="reveal">Reveal</div>
+    <div class="btn-group">
+      <button class="btn" id="btnReveal" data-i18n="playReveal">Play Reveal</button>
+      <button class="btn" id="btnRevealExport" style="flex:0;padding:7px 14px;" title="Export reveal animation">&#x21E9;</button>
+    </div>
+    <div id="revealExportProgress" style="display:none;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:6px;overflow:hidden;">
+      <div id="revealExportBar" style="height:100%;width:0%;background:#d4a574;transition:width 0.1s;"></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <label data-i18n="revealSpeed">Speed</label>
+      <input type="range" id="revealDuration" min="5" max="80" value="25">
+      <span class="val" id="revealDurationVal">2.5s</span>
+    </div>
+    <div class="row" style="margin-top:6px;align-items:center;gap:6px;">
+      <label data-i18n="revealAngle">Angle</label>
+      <input type="range" id="revealAngle" min="0" max="359" value="0" style="flex:1;">
+      <canvas id="revealAngleDial" width="28" height="28" style="cursor:pointer;flex-shrink:0;" title="Click to set angle"></canvas>
+    </div>
+    <div class="btn-group" id="revealAnglePresets" style="flex-wrap:wrap;gap:4px;margin-top:4px;">
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="0">→</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="45">↗</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="90">↑</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="135">↖</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="180">←</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="225">↙</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="270">↓</button>
+      <button class="btn" style="flex:0;padding:5px 8px;font-size:13px;" data-angle="315">↘</button>
     </div>
 
     <div class="divider"></div>
@@ -688,6 +690,9 @@ uniform float u_colorFromImage;
 uniform float u_colorMix;
 uniform float u_time;
 
+uniform float u_revealProgress; // -1 = disabled, 0..1 = sweep
+uniform float u_revealAngle;    // radians
+
 // Post-processing
 uniform float u_pp_vignette;
 uniform float u_pp_scanlines;
@@ -728,6 +733,16 @@ void main() {
   if (sampleUV.x < 0.0 || sampleUV.x > 1.0 || sampleUV.y < 0.0 || sampleUV.y > 1.0) {
     gl_FragColor = vec4(u_bgColor, 1.0);
     return;
+  }
+
+  // Reveal animation sweep
+  if (u_revealProgress >= 0.0) {
+    vec2 revDir = vec2(cos(u_revealAngle), -sin(u_revealAngle));
+    float proj = dot(v_uv - 0.5, revDir) * 0.5 + 0.5;
+    if (u_revealProgress < proj) {
+      gl_FragColor = vec4(u_bgColor, 1.0);
+      return;
+    }
   }
 
   vec3 texColor = texture2D(u_image, sampleUV).rgb;
@@ -822,7 +837,8 @@ const loc = {};
  'u_minDot','u_maxDot','u_shape','u_gridRotation',
  'u_contrast','u_gamma','u_threshold','u_invert',
  'u_bgColor','u_dotColor','u_colorFromImage','u_colorMix','u_time',
- 'u_pp_vignette','u_pp_scanlines','u_pp_noise'
+ 'u_pp_vignette','u_pp_scanlines','u_pp_noise',
+ 'u_revealProgress','u_revealAngle'
 ].forEach(n => { loc[n] = gl.getUniformLocation(prog, n); });
 
 function createTexture(unit, filter) {
@@ -848,6 +864,7 @@ const params = {
   bgColor: [0, 0, 1], dotColor: [1, 1, 1],
   colorFromImage: 0, colorMix: 1.0,
   pp_vignette: 0, pp_scanlines: 0, pp_noise: 0,
+  revealProgress: -1.0, revealAngle: 0,
 };
 
 let startTime = performance.now();
@@ -873,6 +890,8 @@ function render() {
   gl.uniform1f(loc.u_pp_vignette, params.pp_vignette);
   gl.uniform1f(loc.u_pp_scanlines, params.pp_scanlines);
   gl.uniform1f(loc.u_pp_noise, params.pp_noise);
+  gl.uniform1f(loc.u_revealProgress, params.revealProgress);
+  gl.uniform1f(loc.u_revealAngle, params.revealAngle * Math.PI / 180);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
@@ -883,9 +902,15 @@ function uploadAndRender(src) {
   render();
 }
 
+let _rerenderPending = false;
 function rerender() {
-  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
-  else if (source === 'image') render();
+  if (_rerenderPending) return;
+  _rerenderPending = true;
+  requestAnimationFrame(() => {
+    _rerenderPending = false;
+    if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+    else if (source === 'image') render();
+  });
 }
 
 // ============ Import ============
@@ -1360,6 +1385,164 @@ function lzwEncode(out, data, minCode) {
   out.push(0);
 }
 
+// ============ Reveal Animation ============
+let revealAnimId = null;
+
+const btnReveal = document.getElementById('btnReveal');
+const revealDurationEl = document.getElementById('revealDuration');
+const revealDurationVal = document.getElementById('revealDurationVal');
+
+revealDurationEl.addEventListener('input', () => {
+  revealDurationVal.textContent = (revealDurationEl.value / 10).toFixed(1) + 's';
+});
+
+const revealAngleSlider = document.getElementById('revealAngle');
+const revealAngleDial = document.getElementById('revealAngleDial');
+
+function drawAngleDial(deg) {
+  const ctx = revealAngleDial.getContext('2d');
+  const cx = 14, cy = 14, r = 11;
+  ctx.clearRect(0, 0, 28, 28);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  const rad = deg * Math.PI / 180;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(rad) * r, cy - Math.sin(rad) * r);
+  ctx.strokeStyle = '#d4a574';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx + Math.cos(rad) * r, cy - Math.sin(rad) * r, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#d4a574';
+  ctx.fill();
+}
+
+function setRevealAngle(deg) {
+  params.revealAngle = ((deg % 360) + 360) % 360;
+  revealAngleSlider.value = params.revealAngle;
+  drawAngleDial(params.revealAngle);
+}
+
+revealAngleSlider.addEventListener('input', () => setRevealAngle(Number(revealAngleSlider.value)));
+
+let dialDragging = false;
+function angleFromPointer(e) {
+  const rect = revealAngleDial.getBoundingClientRect();
+  const x = (e.clientX || e.touches[0].clientX) - rect.left - 14;
+  const y = (e.clientY || e.touches[0].clientY) - rect.top - 14;
+  return ((-Math.atan2(y, x) * 180 / Math.PI) + 360) % 360;
+}
+revealAngleDial.addEventListener('mousedown', e => { dialDragging = true; setRevealAngle(angleFromPointer(e)); });
+document.addEventListener('mousemove', e => { if (dialDragging) setRevealAngle(angleFromPointer(e)); });
+document.addEventListener('mouseup', () => { dialDragging = false; });
+
+document.getElementById('revealAnglePresets').querySelectorAll('[data-angle]').forEach(btn => {
+  btn.addEventListener('click', () => setRevealAngle(Number(btn.dataset.angle)));
+});
+
+setRevealAngle(0);
+
+function stopReveal() {
+  if (revealAnimId) { cancelAnimationFrame(revealAnimId); revealAnimId = null; }
+  params.revealProgress = -1.0;
+  if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+  else render();
+  btnReveal.textContent = t('playReveal');
+  btnReveal.classList.remove('active');
+}
+
+function startReveal() {
+  if (!source) return;
+  stopReveal();
+  const duration = Number(revealDurationEl.value) / 10 * 1000;
+  const t0 = performance.now();
+  btnReveal.textContent = t('stopReveal');
+  btnReveal.classList.add('active');
+
+  function loop() {
+    const elapsed = performance.now() - t0;
+    const progress = Math.min(elapsed / duration, 1.0);
+    params.revealProgress = 1 - Math.pow(1 - progress, 3);
+    if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+    else if (source === 'video') uploadAndRender(video);
+    else render();
+    if (progress < 1.0) {
+      revealAnimId = requestAnimationFrame(loop);
+    } else {
+      params.revealProgress = -1.0;
+      if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+      else render();
+      revealAnimId = null;
+      btnReveal.textContent = t('playReveal');
+      btnReveal.classList.remove('active');
+    }
+  }
+  revealAnimId = requestAnimationFrame(loop);
+}
+
+btnReveal.addEventListener('click', () => {
+  if (revealAnimId) { stopReveal(); } else { startReveal(); }
+});
+
+// ---- Reveal Export ----
+const btnRevealExport = document.getElementById('btnRevealExport');
+const revealExportProgress = document.getElementById('revealExportProgress');
+const revealExportBar = document.getElementById('revealExportBar');
+let revealExportRecorder = null;
+
+btnRevealExport.addEventListener('click', () => {
+  if (revealExportRecorder) {
+    revealExportRecorder.stop();
+    return;
+  }
+  stopReveal();
+
+  const duration = Number(revealDurationEl.value) / 10 * 1000;
+  const t0 = performance.now();
+
+  const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+    ? 'video/mp4;codecs=avc1'
+    : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+      ? 'video/webm;codecs=vp9' : 'video/webm';
+  const stream = canvas.captureStream(30);
+  const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+  recorder.onstop = () => {
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    download(new Blob(chunks, { type: mimeType }), `halftone_reveal.${ext}`);
+    revealExportRecorder = null;
+    btnRevealExport.textContent = '⇩';
+    revealExportProgress.style.display = 'none';
+    revealExportBar.style.width = '0%';
+  };
+  recorder.start();
+  revealExportRecorder = recorder;
+  btnRevealExport.textContent = '■';
+  revealExportProgress.style.display = '';
+  revealExportBar.style.width = '0%';
+
+  function loop() {
+    const elapsed = performance.now() - t0;
+    const progress = Math.min(elapsed / duration, 1.0);
+    params.revealProgress = 1 - Math.pow(1 - progress, 3);
+    if (source === 'image' && currentImgSrc) uploadAndRender(currentImgSrc);
+    else render();
+    revealExportBar.style.width = (progress * 100) + '%';
+    if (progress < 1.0) {
+      requestAnimationFrame(loop);
+    } else {
+      params.revealProgress = -1.0;
+      recorder.stop();
+    }
+  }
+  requestAnimationFrame(loop);
+});
+
 // ============ i18n ============
 const i18n = {
   en: {
@@ -1375,6 +1558,7 @@ const i18n = {
     threshold: 'Threshold', invert: 'Invert',
     color: 'Color', bgColor: 'Background', dotColor: 'Dot Color',
     colorFromImage: 'Color from Image', colorMix: 'Mix',
+    reveal: 'Reveal', playReveal: 'Play Reveal', stopReveal: 'Stop', revealSpeed: 'Speed', revealAngle: 'Angle',
     postProcessing: 'Post-Processing',
     vignette: 'Vignette', scanLines: 'Scan Lines', noise: 'Noise',
     download: 'Download', stopRecording: 'Stop Recording',
@@ -1394,6 +1578,7 @@ const i18n = {
     threshold: '阈值', invert: '反转',
     color: '颜色', bgColor: '背景', dotColor: '网点颜色',
     colorFromImage: '图片取色', colorMix: '混合',
+    reveal: '揭示动画', playReveal: '播放揭示', stopReveal: '停止', revealSpeed: '速度', revealAngle: '方向',
     postProcessing: '后处理',
     vignette: '暗角', scanLines: '扫描线', noise: '噪点',
     download: '下载', stopRecording: '停止录制',

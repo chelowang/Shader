@@ -835,6 +835,13 @@ select.select-input:focus { border-color: rgba(212,165,116,0.3); }
       <button class="btn" id="btnReveal" data-i18n="playReveal">Play Reveal</button>
       <button class="btn" id="btnRevealExport" style="flex:0;padding:7px 14px;" title="导出揭示动画">&#x21E9;</button>
     </div>
+    <div class="row" style="margin-top:6px;">
+      <label data-i18n="revealBg">Export BG</label>
+      <div class="btn-group" style="flex:1;gap:3px;">
+        <button class="btn active" id="btnRevealBgColor" style="padding:5px 0;font-size:11px;" data-i18n="revealBgColor">Color</button>
+        <button class="btn" id="btnRevealBgTransp" style="padding:5px 0;font-size:11px;" data-i18n="revealBgTransp">Transparent</button>
+      </div>
+    </div>
     <div id="revealExportProgress" style="display:none;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:6px;overflow:hidden;">
       <div id="revealExportBar" style="height:100%;width:0%;background:#d4a574;transition:width 0.1s;"></div>
     </div>
@@ -1126,8 +1133,9 @@ uniform vec3  u_pp_overlay;
 uniform float u_pp_overlayAmt;
 uniform float u_pp_bloom;
 uniform float u_charDither;
-uniform float u_revealProgress; // -1 = disabled, 0..1 = sweep
-uniform float u_revealAngle;    // radians
+uniform float u_revealProgress;    // -1 = disabled, 0..1 = sweep
+uniform float u_revealAngle;      // radians
+uniform float u_revealTransparent; // 1 = transparent bg for unrevealed area
 
 vec3 sampleGradient(float t) {
   t = clamp(t, 0.0, 1.0);
@@ -1377,7 +1385,9 @@ void main() {
     vec2 revDir = vec2(cos(u_revealAngle), -sin(u_revealAngle));
     float proj = dot(cellUV - 0.5, revDir) * 0.5 + 0.5;
     if (u_revealProgress < proj) {
-      gl_FragColor = vec4(applyPP(bg, suv), 1.0);
+      gl_FragColor = u_revealTransparent > 0.5
+        ? vec4(0.0, 0.0, 0.0, 0.0)
+        : vec4(applyPP(bg, suv), 1.0);
       return;
     }
     float behind = u_revealProgress - proj;
@@ -1385,7 +1395,10 @@ void main() {
   }
 
   float fade = smoothstep(effectiveThreshold, effectiveThreshold + u_fadeRange, eBri);
-  if (fade < 0.01 || !showChar) { gl_FragColor = vec4(applyPP(bg, suv), 1.0); return; }
+  if (fade < 0.01 || !showChar) {
+    gl_FragColor = u_revealTransparent > 0.5 ? vec4(0.0, 0.0, 0.0, 0.0) : vec4(applyPP(bg, suv), 1.0);
+    return;
+  }
 
   float cVal = pow(clamp(eBri + waveOff * 0.2, 0.0, 1.0), u_charGamma);
   vec2 lp = fract(gl_FragCoord.xy / u_cellSize);
@@ -1429,8 +1442,12 @@ void main() {
 
   float regionMult = inRegion ? u_regionBright : 1.0;
   float fA = clamp(cAlpha * fade * u_charOpacity * flickerVal * regionMult, 0.0, 1.0);
-  vec3 result = min(bg + fcc * fA * 0.8, vec3(1.0));
-  gl_FragColor = vec4(applyPP(result, suv), 1.0);
+  if (u_revealTransparent > 0.5) {
+    gl_FragColor = vec4(fcc * fA, fA);
+  } else {
+    vec3 result = min(bg + fcc * fA * 0.8, vec3(1.0));
+    gl_FragColor = vec4(applyPP(result, suv), 1.0);
+  }
 }`;
 
 function compileShader(src, type) {
@@ -1462,7 +1479,7 @@ const loc = {};
  'u_charFrac','u_charSoft',
  'u_regionActive','u_regionRect','u_regionCharCount','u_regionBright','u_regionBold',
  'u_charDither',
- 'u_revealProgress','u_revealAngle',
+ 'u_revealProgress','u_revealAngle','u_revealTransparent',
  'u_pp_vignette','u_pp_scanlines','u_pp_crt','u_pp_chromatic','u_pp_grain',
  'u_pp_glitch','u_pp_glitchSpeed','u_pp_pixelate','u_pp_halftone','u_pp_halftoneSize',
  'u_pp_dust','u_pp_overlay','u_pp_overlayAmt','u_pp_bloom'
@@ -1596,6 +1613,7 @@ function render() {
   gl.uniform1f(loc.u_pp_bloom, params.pp_bloom);
   gl.uniform1f(loc.u_revealProgress, params.revealProgress !== undefined ? params.revealProgress : -1.0);
   gl.uniform1f(loc.u_revealAngle, (params.revealAngle || 0) * Math.PI / 180);
+  gl.uniform1f(loc.u_revealTransparent, params.revealTransparent || 0);
   gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 }
 
@@ -2074,6 +2092,19 @@ btnReveal.addEventListener('click', () => {
   if (revealAnimId) { stopReveal(); } else { startReveal(); }
 });
 
+// ---- Reveal BG toggle ----
+params.revealTransparent = 0;
+document.getElementById('btnRevealBgColor').addEventListener('click', () => {
+  params.revealTransparent = 0;
+  document.getElementById('btnRevealBgColor').classList.add('active');
+  document.getElementById('btnRevealBgTransp').classList.remove('active');
+});
+document.getElementById('btnRevealBgTransp').addEventListener('click', () => {
+  params.revealTransparent = 1;
+  document.getElementById('btnRevealBgTransp').classList.add('active');
+  document.getElementById('btnRevealBgColor').classList.remove('active');
+});
+
 // ---- Reveal Export ----
 const btnRevealExport = document.getElementById('btnRevealExport');
 const revealExportProgress = document.getElementById('revealExportProgress');
@@ -2088,20 +2119,25 @@ btnRevealExport.addEventListener('click', () => {
   stopReveal();
 
   const duration = Number(revealDurationEl.value) / 10 * 1000;
-  const targetThreshold = params.threshold;
+  const transparent = params.revealTransparent > 0.5;
   const t0 = performance.now();
 
-  const mimeType = MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
-    ? 'video/mp4;codecs=avc1'
-    : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9' : 'video/webm';
+  // Transparent export forces WebM (VP9 supports alpha channel; MP4/H.264 does not)
+  const mimeType = transparent
+    ? (MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm')
+    : (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1')
+        ? 'video/mp4;codecs=avc1'
+        : MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+          ? 'video/webm;codecs=vp9' : 'video/webm');
+
   const stream = canvas.captureStream(30);
   const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 8000000 });
   const chunks = [];
   recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
   recorder.onstop = () => {
     const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-    download(new Blob(chunks, { type: mimeType }), `ascii_reveal.${ext}`);
+    const suffix = transparent ? '_transparent' : '';
+    download(new Blob(chunks, { type: mimeType }), `ascii_reveal${suffix}.${ext}`);
     revealExportRecorder = null;
     btnRevealExport.textContent = '\u21E9';
     revealExportProgress.style.display = 'none';
@@ -2649,6 +2685,7 @@ const i18n = {
     flicker: 'Flicker', enableFlicker: 'Enable Flicker', disableFlicker: 'Disable Flicker',
     speed: 'Speed', random: 'Random',
     reveal: 'Reveal', playReveal: 'Play Reveal', stopReveal: 'Stop', revealSpeed: 'Speed', revealAngle: 'Angle',
+    revealBg: 'Export BG', revealBgColor: 'Color', revealBgTransp: 'Transparent',
     wave: 'Wave', scale: 'Scale', colorShift: 'Color Shift',
     download: 'Download', stopRecording: 'Stop Recording',
     fullscreen: 'Fullscreen \u2192',
@@ -2685,6 +2722,7 @@ const i18n = {
     flicker: '闪烁', enableFlicker: '启用闪烁', disableFlicker: '禁用闪烁',
     speed: '速度', random: '随机',
     reveal: '揭示动画', playReveal: '播放揭示', stopReveal: '停止', revealSpeed: '速度', revealAngle: '角度',
+    revealBg: '导出背景', revealBgColor: '颜色', revealBgTransp: '透明',
     wave: '波浪', scale: '缩放', colorShift: '色彩偏移',
     download: '下载', stopRecording: '停止录制',
     fullscreen: '全屏 \u2192',
