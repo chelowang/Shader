@@ -5,18 +5,49 @@
 <link rel="icon" type="image/gif" href="favicon.gif">
 <title>Halftone Dot Renderer - WebGL</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+:root {
+  --bg: #000500;
+  --panel: rgba(3, 24, 4, 0.66);
+  --panel-strong: rgba(7, 38, 8, 0.82);
+  --line: rgba(64, 255, 74, 0.18);
+  --line-strong: rgba(94, 255, 99, 0.72);
+  --text: rgba(92, 255, 99, 0.7);
+  --muted: rgba(71, 180, 77, 0.42);
+  --dim: rgba(37, 120, 43, 0.34);
+  --accent: #64ff68;
+  --accent-soft: rgba(100, 255, 104, 0.18);
+  --danger: #ff6b7e;
+}
+
 body {
-  background: #1a1a1a;
-  color: #a1a1aa;
-  font-family: 'Inter', -apple-system, 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', 'SF Mono', Menlo, Monaco, 'Courier New', monospace;
   display: flex;
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(100, 255, 104, 0.035),
+      rgba(100, 255, 104, 0.035) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  mix-blend-mode: screen;
+  opacity: 0.42;
 }
 
 /* ===== Top Navigation ===== */
@@ -26,15 +57,16 @@ body {
   justify-content: space-between;
   padding: 0 24px;
   height: 48px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--line);
+  background: var(--panel-strong);
   flex-shrink: 0;
 }
 .nav-brand {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: inherit;
   font-size: 18px;
   font-weight: 600;
-  color: #e8e0d4;
-  letter-spacing: -0.01em;
+  color: var(--accent);
+  letter-spacing: 0.01em;
 }
 .nav-links {
   display: flex;
@@ -42,13 +74,13 @@ body {
   gap: 24px;
 }
 .nav-links a {
-  color: #71717a;
+  color: var(--muted);
   text-decoration: none;
   font-size: 13px;
   font-weight: 400;
   transition: color 0.2s;
 }
-.nav-links a:hover { color: #e8e0d4; }
+.nav-links a:hover { color: var(--accent); }
 
 /* ===== Main Layout ===== */
 .main-content {
@@ -66,12 +98,13 @@ body {
   padding: 16px;
   position: relative;
   overflow: hidden;
+  background: radial-gradient(circle at center, rgba(10, 54, 10, 0.2), transparent 42%), var(--bg);
 }
 .canvas-wrapper {
   position: relative;
   width: 100%;
   height: 100%;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--line);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -83,8 +116,8 @@ canvas#glCanvas {
   object-fit: contain;
 }
 .hint {
-  color: #52525b;
-  font-family: 'Space Grotesk', sans-serif;
+  color: var(--dim);
+  font-family: inherit;
   font-size: 15px;
   font-weight: 500;
   position: absolute;
@@ -107,15 +140,15 @@ canvas#glCanvas {
 .default-thumb {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   cursor: pointer;
-  border: 1.5px solid rgba(255,255,255,0.1);
+  border: 1.5px solid var(--line);
   transition: border-color 0.2s, transform 0.2s;
   flex-shrink: 0;
 }
 .default-thumb:hover {
-  border-color: #d4a574;
+  border-color: var(--line-strong);
   transform: scale(1.06);
 }
 .default-thumb img {
@@ -130,28 +163,29 @@ canvas#glCanvas {
 .panel {
   width: 280px;
   min-width: 280px;
-  border-left: 1px solid rgba(255,255,255,0.06);
+  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 20px 16px;
   gap: 4px;
-  background: #1a1a1a;
+  background: linear-gradient(180deg, var(--panel-strong), rgba(1, 15, 2, 0.82));
+  box-shadow: inset 0 0 0 1px rgba(100, 255, 104, 0.06);
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
   will-change: scroll-position;
 }
 .panel::-webkit-scrollbar { width: 5px; }
 .panel::-webkit-scrollbar-track { background: transparent; }
-.panel::-webkit-scrollbar-thumb { background: rgba(212,165,116,0.2); border-radius: 10px; }
-.panel::-webkit-scrollbar-thumb:hover { background: rgba(212,165,116,0.4); }
+.panel::-webkit-scrollbar-thumb { background: var(--accent-soft); border-radius: 0; }
+.panel::-webkit-scrollbar-thumb:hover { background: rgba(100,255,104,0.36); }
 
 /* Section titles */
 .panel-title {
   font-size: 10px;
   font-weight: 600;
-  color: #71717a;
+  color: var(--accent);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   margin: 16px 0 10px;
@@ -171,12 +205,12 @@ canvas#glCanvas {
 .panel .row label {
   font-size: 12px;
   font-weight: 400;
-  color: #71717a;
+  color: var(--muted);
   white-space: nowrap;
   min-width: 72px;
   transition: color 0.2s;
 }
-.panel .row:hover label { color: #a1a1aa; }
+.panel .row:hover label { color: var(--text); }
 
 /* Sliders */
 .panel .row input[type="range"] {
@@ -185,8 +219,8 @@ canvas#glCanvas {
   -webkit-appearance: none;
   appearance: none;
   height: 2px;
-  background: rgba(212,165,116,0.2);
-  border-radius: 10px;
+  background: rgba(100,255,104,0.18);
+  border-radius: 0;
   outline: none;
   cursor: pointer;
 }
@@ -195,21 +229,21 @@ canvas#glCanvas {
   appearance: none;
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  background: #d4a574;
-  border: 2px solid #1a1a1a;
-  box-shadow: 0 0 0 1px rgba(212,165,116,0.3);
+  border-radius: 1px;
+  background: var(--accent);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px rgba(100,255,104,0.34);
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.2s;
 }
 .panel .row input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
-  box-shadow: 0 0 0 1px rgba(212,165,116,0.5), 0 2px 12px rgba(212,165,116,0.3);
+  box-shadow: 0 0 0 1px rgba(100,255,104,0.65);
 }
 .panel .row .val {
   font-size: 11px;
   font-weight: 500;
-  color: #71717a;
+  color: var(--text);
   min-width: 24px;
   text-align: right;
   font-variant-numeric: tabular-nums;
@@ -218,10 +252,10 @@ canvas#glCanvas {
 /* Buttons - pill style */
 .btn {
   padding: 7px 14px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: transparent;
-  color: #a1a1aa;
-  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: rgba(2, 18, 3, 0.62);
+  color: var(--text);
+  border-radius: 0;
   cursor: pointer;
   font-size: 12px;
   font-weight: 400;
@@ -231,14 +265,14 @@ canvas#glCanvas {
   white-space: nowrap;
 }
 .btn:hover {
-  border-color: rgba(255,255,255,0.2);
-  color: #e8e0d4;
+  border-color: var(--line-strong);
+  color: var(--accent);
 }
 .btn:active { transform: scale(0.97); }
 .btn.active {
-  background: rgba(212,165,116,0.08);
-  border-color: rgba(212,165,116,0.3);
-  color: #d4a574;
+  background: var(--accent-soft);
+  border-color: var(--line-strong);
+  color: var(--accent);
 }
 
 /* Button group */
@@ -251,7 +285,7 @@ canvas#glCanvas {
 /* Divider */
 .divider {
   height: 1px;
-  background: rgba(255,255,255,0.06);
+  background: var(--line);
   margin: 12px 0;
 }
 
@@ -260,10 +294,10 @@ canvas#glCanvas {
   display: block;
   width: 100%;
   padding: 10px 16px;
-  border: 1px solid rgba(255,255,255,0.1);
-  background: transparent;
-  color: #a1a1aa;
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(2, 18, 3, 0.62);
+  color: var(--text);
+  border-radius: 0;
   cursor: pointer;
   font-size: 13px;
   font-weight: 400;
@@ -273,28 +307,28 @@ canvas#glCanvas {
   margin-top: 4px;
 }
 .action-btn:hover {
-  border-color: rgba(255,255,255,0.18);
-  color: #e8e0d4;
+  border-color: var(--line-strong);
+  color: var(--accent);
 }
 .action-btn.recording {
-  border-color: rgba(248,113,113,0.3);
-  color: #f87171;
+  border-color: rgba(255,107,126,0.45);
+  color: var(--danger);
 }
 
 /* Color swatch */
 .color-swatch {
   width: 28px;
   height: 28px;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: 0;
   cursor: pointer;
   padding: 0;
   overflow: hidden;
   transition: all 0.2s;
 }
-.color-swatch:hover { border-color: rgba(212,165,116,0.3); }
+.color-swatch:hover { border-color: var(--line-strong); }
 .color-swatch::-webkit-color-swatch-wrapper { padding: 0; }
-.color-swatch::-webkit-color-swatch { border: none; border-radius: 7px; }
+.color-swatch::-webkit-color-swatch { border: none; border-radius: 0; }
 
 /* Export */
 .export-formats { display: flex; flex-direction: column; gap: 2px; }
@@ -303,24 +337,24 @@ canvas#glCanvas {
   align-items: center;
   gap: 10px;
   padding: 6px 8px;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.2s;
   user-select: none;
 }
-.export-option:hover { background: rgba(255,255,255,0.02); }
+.export-option:hover { background: rgba(100,255,104,0.06); }
 .export-option input[type="radio"] { display: none; }
 .export-radio {
   width: 14px;
   height: 14px;
-  border-radius: 50%;
-  border: 1.5px solid #3f3f46;
+  border-radius: 0;
+  border: 1.5px solid var(--dim);
   transition: all 0.2s;
   position: relative;
   flex-shrink: 0;
 }
 .export-option input[type="radio"]:checked ~ .export-radio {
-  border-color: #d4a574;
+  border-color: var(--accent);
 }
 .export-option input[type="radio"]:checked ~ .export-radio::after {
   content: '';
@@ -329,33 +363,33 @@ canvas#glCanvas {
   left: 3px;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  background: #d4a574;
+  border-radius: 0;
+  background: var(--accent);
 }
-.export-option input[type="radio"]:checked ~ .export-label { color: #e8e0d4; }
-.export-label { font-size: 12px; font-weight: 400; color: #71717a; transition: color 0.2s; }
+.export-option input[type="radio"]:checked ~ .export-label { color: var(--accent); }
+.export-label { font-size: 12px; font-weight: 400; color: var(--muted); transition: color 0.2s; }
 .export-badge {
   font-size: 9px;
   font-weight: 500;
-  color: #d4a574;
-  background: rgba(212,165,116,0.08);
+  color: var(--accent);
+  background: rgba(100,255,104,0.08);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: 0;
   margin-left: auto;
-  border: 1px solid rgba(212,165,116,0.15);
+  border: 1px solid var(--line);
 }
 .export-progress {
   height: 2px;
-  background: rgba(212,165,116,0.1);
-  border-radius: 10px;
+  background: rgba(100,255,104,0.1);
+  border-radius: 0;
   margin-top: 8px;
   overflow: hidden;
 }
 .export-progress-bar {
   height: 100%;
   width: 0%;
-  background: #d4a574;
-  border-radius: 10px;
+  background: var(--accent);
+  border-radius: 0;
   transition: width 0.15s;
 }
 
@@ -369,10 +403,10 @@ video { display: none; }
 .shape-btn {
   flex: 1;
   padding: 6px 0;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--line);
   background: transparent;
-  color: #52525b;
-  border-radius: 6px;
+  color: var(--dim);
+  border-radius: 0;
   cursor: pointer;
   font-size: 11px;
   font-family: inherit;
@@ -380,19 +414,19 @@ video { display: none; }
   transition: all 0.2s;
   text-align: center;
 }
-.shape-btn:hover { color: #71717a; }
+.shape-btn:hover { color: var(--text); }
 .shape-btn.active {
-  border-color: rgba(212,165,116,0.3);
-  color: #d4a574;
+  border-color: var(--line-strong);
+  color: var(--accent);
 }
 
 /* Language toggle */
 .lang-toggle {
   padding: 4px 10px;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid var(--line);
   background: transparent;
-  color: #71717a;
-  border-radius: 14px;
+  color: var(--text);
+  border-radius: 0;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
@@ -401,8 +435,8 @@ video { display: none; }
   margin-left: 16px;
 }
 .lang-toggle:hover {
-  border-color: rgba(255,255,255,0.2);
-  color: #e8e0d4;
+  border-color: var(--line-strong);
+  color: var(--accent);
 }
 </style>
 </head>
@@ -519,11 +553,11 @@ video { display: none; }
     <div class="panel-title" data-i18n="color">Color</div>
     <div class="row">
       <label data-i18n="bgColor">Background</label>
-      <input type="color" id="bgColor" value="#0000ff" class="color-swatch">
+      <input type="color" id="bgColor" value="#000500" class="color-swatch">
     </div>
     <div class="row">
       <label data-i18n="dotColor">Dot Color</label>
-      <input type="color" id="dotColor" value="#ffffff" class="color-swatch">
+      <input type="color" id="dotColor" value="#64ff68" class="color-swatch">
     </div>
     <button class="btn" id="btnColorFromImage" data-i18n="colorFromImage" style="margin-top:4px;">Color from Image</button>
     <div id="colorFromImageOpts" style="display:none;margin-top:4px;">
@@ -542,8 +576,8 @@ video { display: none; }
       <button class="btn" id="btnReveal" data-i18n="playReveal">Play Reveal</button>
       <button class="btn" id="btnRevealExport" style="flex:0;padding:7px 14px;" title="Export reveal animation">&#x21E9;</button>
     </div>
-    <div id="revealExportProgress" style="display:none;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:6px;overflow:hidden;">
-      <div id="revealExportBar" style="height:100%;width:0%;background:#d4a574;transition:width 0.1s;"></div>
+    <div id="revealExportProgress" style="display:none;height:3px;background:rgba(100,255,104,0.1);border-radius:0;margin-top:6px;overflow:hidden;">
+      <div id="revealExportBar" style="height:100%;width:0%;background:#64ff68;transition:width 0.1s;"></div>
     </div>
     <div class="row" style="margin-top:6px;">
       <label data-i18n="revealSpeed">Speed</label>
@@ -861,7 +895,7 @@ const params = {
   minDot: 0.05, maxDot: 0.95,
   shape: 0, gridRotation: 0,
   contrast: 1.0, gamma: 1.0, threshold: 0.0, invert: 0,
-  bgColor: [0, 0, 1], dotColor: [1, 1, 1],
+  bgColor: [0, 0.02, 0], dotColor: [0.392, 1, 0.408],
   colorFromImage: 0, colorMix: 1.0,
   pp_vignette: 0, pp_scanlines: 0, pp_noise: 0,
   revealProgress: -1.0, revealAngle: 0,
@@ -1006,7 +1040,7 @@ document.getElementById('defaultImages').querySelectorAll('.default-thumb').forE
 const canvasWrapper = document.querySelector('.canvas-wrapper');
 canvasWrapper.addEventListener('dragover', (e) => {
   e.preventDefault();
-  canvasWrapper.style.outline = '2px solid rgba(212,165,116,0.5)';
+  canvasWrapper.style.outline = '2px solid rgba(100,255,104,0.5)';
 });
 canvasWrapper.addEventListener('dragleave', () => {
   canvasWrapper.style.outline = '';
@@ -1405,19 +1439,19 @@ function drawAngleDial(deg) {
   ctx.clearRect(0, 0, 28, 28);
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.strokeStyle = 'rgba(100,255,104,0.18)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
   const rad = deg * Math.PI / 180;
   ctx.beginPath();
   ctx.moveTo(cx, cy);
   ctx.lineTo(cx + Math.cos(rad) * r, cy - Math.sin(rad) * r);
-  ctx.strokeStyle = '#d4a574';
+  ctx.strokeStyle = '#64ff68';
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(cx + Math.cos(rad) * r, cy - Math.sin(rad) * r, 2.5, 0, Math.PI * 2);
-  ctx.fillStyle = '#d4a574';
+  ctx.fillStyle = '#64ff68';
   ctx.fill();
 }
 
